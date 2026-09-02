@@ -27,16 +27,15 @@ from aiogram.enums import ParseMode
 
 # ================== SOZLAMALAR ==================
 
-BOT_TOKEN = "SIZNING_BOT_TOKENINGIZ_BU_YERGA"
+BOT_TOKEN = "8900492996:AAHH1IITD_HO7d5z_tCxZSQHlRkYnKLY5TY"
 
 # Admin(lar)ning Telegram ID raqami(lari)
-ADMIN_IDS = [123456789]
+ADMIN_IDS = [8241010228]
 
 # Majburiy obuna kanallari. Username formatida yozing (@ belgisi bilan).
 # Bot shu kanallarga ADMIN sifatida qo'shilgan bo'lishi kerak, aks holda a'zolikni tekshira olmaydi.
 FORCE_CHANNELS = [
-    "@kanal_username1",
-    "@kanal_username2",
+    "@kitob_coin",
 ]
 
 # Mini App joylashgan manzil (index.html shu bot bilan bir serverda joylashadi,
