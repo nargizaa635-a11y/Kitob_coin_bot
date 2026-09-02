@@ -40,7 +40,7 @@ FORCE_CHANNELS = [
 
 # Mini App joylashgan manzil (index.html shu bot bilan bir serverda joylashadi,
 # Railway sizga domen bergach shu yerga yozasiz, masalan: https://sizning-loyiha.up.railway.app)
-WEBAPP_URL = "https://SIZNING-DOMENINGIZ.up.railway.app"
+WEBAPP_URL = "https://kino-bot-production-1118.up.railway.app"
 
 # Server qaysi portda ishlashi (Railway avtomatik PORT beradi)
 import os
