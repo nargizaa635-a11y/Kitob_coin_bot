@@ -29,7 +29,13 @@ import database as db
 
 # ================== SOZLAMALAR ==================
 
-BOT_TOKEN = "8900492996:AAHH1IITD_HO7d5z_tCxZSQHlRkYnKLY5TY"
+# XAVFSIZLIK: Token kodda YOZILMAYDI — Railway'da Variables bo'limiga BOT_TOKEN qilib qo'shiladi.
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise RuntimeError(
+        "BOT_TOKEN topilmadi! Railway loyihasida Variables bo'limiga "
+        "BOT_TOKEN nomi bilan yangi tokeningizni qo'shing."
+    )
 
 ADMIN_IDS = [8241010228]
 
@@ -342,6 +348,11 @@ def create_app() -> web.Application:
 async def main():
     await db.init_db()
     logger.info("Ma'lumotlar bazasiga ulandi (Postgres)")
+
+    # Xavfsizlik: agar boshqa xizmat (masalan ManyBot) shu tokenga webhook o'rnatgan bo'lsa,
+    # uni majburan o'chiramiz — aks holda bizning bot xabarlarni olmay qoladi.
+    await bot.delete_webhook(drop_pending_updates=True)
+    logger.info("Webhook tozalandi, polling rejimida ishga tushmoqda")
 
     web_app = create_app()
     runner = web.AppRunner(web_app)
