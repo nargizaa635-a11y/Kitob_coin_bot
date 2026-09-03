@@ -10,11 +10,13 @@
     --bg: #0f1117;
     --card: #1a1d29;
     --card-2: #212434;
-    --accent: #7c5cff;
-    --accent-2: #ff8a5c;
+    --accent: #4F46E5;
+    --accent-light: #6366F1;
+    --accent-2: #FBBF24;
     --text: #f0f0f5;
     --text-dim: #9a9cab;
     --success: #4ade80;
+    --danger: #f87171;
     --border: #2a2e42;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,7 +38,7 @@
     font-weight: 700;
   }
   .balance-pill {
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     padding: 8px 14px;
     border-radius: 20px;
     font-weight: 700;
@@ -44,7 +46,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
   }
   .container {
     padding: 0 16px;
@@ -64,7 +66,7 @@
     background: var(--card);
     border-top: 1px solid var(--border);
     display: flex;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
     z-index: 100;
   }
   .tab-btn {
@@ -72,8 +74,8 @@
     background: none;
     border: none;
     color: var(--text-dim);
-    font-size: 12px;
-    padding: 8px 4px;
+    font-size: 11px;
+    padding: 8px 2px;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -82,10 +84,10 @@
     transition: all 0.2s;
   }
   .tab-btn.active {
-    color: var(--accent);
-    background: rgba(124, 92, 255, 0.12);
+    color: var(--accent-light);
+    background: rgba(79, 70, 229, 0.15);
   }
-  .tab-btn .icon { font-size: 20px; }
+  .tab-btn .icon { font-size: 19px; }
   .tab-content { display: none; }
   .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
   @keyframes fadeIn {
@@ -124,7 +126,7 @@
     height: 64px;
     border-radius: 50%;
     border: 4px solid var(--border);
-    border-top-color: var(--accent);
+    border-top-color: var(--accent-light);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -146,8 +148,12 @@
   }
   .btn:active { transform: scale(0.98); }
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     color: white;
+  }
+  .btn-amber {
+    background: linear-gradient(135deg, var(--accent-2), #f59e0b);
+    color: #1a1200;
   }
   .btn-disabled {
     background: var(--card-2);
@@ -179,7 +185,7 @@
   .big-balance .num {
     font-size: 42px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    background: linear-gradient(135deg, var(--accent-light), var(--accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -253,6 +259,141 @@
     color: var(--text-dim);
     cursor: not-allowed;
   }
+
+  /* ===== SAHIFAM (Profil) ===== */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 2px 20px;
+  }
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+  }
+  .profile-name { font-size: 17px; font-weight: 700; }
+  .profile-username { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .stat-box .num { font-size: 18px; font-weight: 800; color: var(--accent-light); }
+  .stat-box .label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .premium-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .premium-banner .emoji { font-size: 26px; }
+  .premium-banner .title { font-weight: 700; font-size: 14px; }
+  .premium-banner .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  .premium-tag {
+    margin-left: auto;
+    background: var(--card-2);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 10px;
+  }
+  .menu-list { padding: 0; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item .emoji { font-size: 20px; width: 24px; text-align: center; }
+  .menu-item .title { font-weight: 700; font-size: 14px; }
+  .menu-item .sub { color: var(--text-dim); font-size: 11px; margin-top: 1px; }
+  .menu-item .arrow { margin-left: auto; color: var(--text-dim); }
+
+  /* ===== TANLOV (Quiz) ===== */
+  .quiz-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .quiz-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .quiz-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .quiz-meta span { display: flex; align-items: center; gap: 4px; }
+  .quiz-start-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border: none;
+    padding: 11px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .quiz-progress-bar {
+    height: 6px;
+    background: var(--card-2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .quiz-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.3s ease;
+  }
+  .quiz-question-num { color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
+  .quiz-question-text { font-size: 17px; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
+  .quiz-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .quiz-option.correct { background: rgba(74, 222, 128, 0.18); border-color: var(--success); color: var(--success); }
+  .quiz-option.wrong { background: rgba(248, 113, 113, 0.18); border-color: var(--danger); color: var(--danger); }
+  .quiz-timer { text-align: center; color: var(--accent-2); font-weight: 700; font-size: 13px; margin-bottom: 14px; }
+  .quiz-result { text-align: center; padding: 20px 0; }
+  .quiz-result .emoji { font-size: 48px; margin-bottom: 10px; }
+  .quiz-result .score { font-size: 28px; font-weight: 800; color: var(--accent-light); margin-bottom: 4px; }
+  .quiz-result .reward { color: var(--accent-2); font-weight: 700; font-size: 15px; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -283,6 +424,36 @@
     </div>
   </div>
 
+  <!-- ===== TANLOV TAB ===== -->
+  <div class="tab-content" id="tab-quiz">
+    <div id="quizListView">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:22px; font-weight:800; margin-bottom:4px;">Tanlov 🏆</div>
+        <div style="color:var(--text-dim); font-size:13px;">Bilimingizni sinang, testdan o'tib koin yutib oling!</div>
+      </div>
+      <div id="quizList"></div>
+    </div>
+
+    <div id="quizPlayView" style="display:none;">
+      <div class="card">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%;"></div></div>
+        <div class="quiz-question-num" id="quizQuestionNum">Savol 1 / 5</div>
+        <div class="quiz-timer" id="quizTimer">⏱ 40s</div>
+        <div class="quiz-question-text" id="quizQuestionText"></div>
+        <div id="quizOptions"></div>
+      </div>
+    </div>
+
+    <div id="quizResultView" style="display:none;">
+      <div class="card quiz-result">
+        <div class="emoji">🎉</div>
+        <div class="score" id="quizScoreText">0 / 5 to'g'ri</div>
+        <div class="reward" id="quizRewardText">+0 🪙 yutib oldingiz</div>
+        <button class="btn btn-primary" id="quizBackBtn">Testlarga qaytish</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== DO'STLAR TAB ===== -->
   <div class="tab-content" id="tab-friends">
     <div class="card">
@@ -308,12 +479,71 @@
     </div>
   </div>
 
+  <!-- ===== SAHIFAM TAB ===== -->
+  <div class="tab-content" id="tab-profile">
+    <div class="profile-header">
+      <div class="avatar" id="profileAvatar">?</div>
+      <div>
+        <div class="profile-name" id="profileName">Foydalanuvchi</div>
+        <div class="profile-username" id="profileUsername">Balans: <span id="profileBalance">0</span> 🪙</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="num" id="statBooks">0</div><div class="label">Kitoblar</div></div>
+      <div class="stat-box"><div class="num" id="statHours">0</div><div class="label">Soat</div></div>
+      <div class="stat-box"><div class="num" id="statStreak">0</div><div class="label">Kun seriya</div></div>
+      <div class="stat-box"><div class="num" id="statBadges">0</div><div class="label">Nishonlar</div></div>
+    </div>
+
+    <div class="card premium-banner">
+      <div class="emoji">⭐</div>
+      <div>
+        <div class="title">Premium yoqilmagan</div>
+        <div class="sub">Shartlar va premium olish — bosing</div>
+      </div>
+      <div class="premium-tag">Yo'q</div>
+    </div>
+
+    <div class="card menu-list">
+      <div class="menu-item" data-msg="Mening kitoblarim bo'limi tez orada!">
+        <div class="emoji">📖</div>
+        <div><div class="title">Mening kitoblarim</div><div class="sub">O'qigan va o'qimoqchi bo'lgan kitoblarim</div></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" data-msg="Sevimli kitoblar bo'limi tez orada!">
+        <div class="emoji">❤️</div>
+        <div><div class="title">Sevimli kitoblarim</div><div class="sub">Yoqtirgan kitoblaringiz</div></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" data-msg="Sharhlar bo'limi tez orada!">
+        <div class="emoji">✍️</div>
+        <div><div class="title">Mening sharhlarim</div><div class="sub">Qoldirgan sharh va izohlaringiz</div></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" data-msg="Sozlamalar tez orada!">
+        <div class="emoji">⚙️</div>
+        <div><div class="title">Sozlamalar</div><div class="sub">Hisob va ilova sozlamalari</div></div>
+        <div class="arrow">›</div>
+      </div>
+      <div class="menu-item" data-msg="Yordam va qo'llab-quvvatlash tez orada!">
+        <div class="emoji">🎧</div>
+        <div><div class="title">Yordam va qo'llab-quvvatlash</div><div class="sub">Savollar va takliflar</div></div>
+        <div class="arrow">›</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="tabs">
   <button class="tab-btn active" data-tab="books">
     <span class="icon">📚</span>
     <span>Kitoblar</span>
+  </button>
+  <button class="tab-btn" data-tab="quiz">
+    <span class="icon">🏆</span>
+    <span>Tanlov</span>
   </button>
   <button class="tab-btn" data-tab="friends">
     <span class="icon">👥</span>
@@ -322,6 +552,10 @@
   <button class="tab-btn" data-tab="shop">
     <span class="icon">🎁</span>
     <span>Do'kon</span>
+  </button>
+  <button class="tab-btn" data-tab="profile">
+    <span class="icon">👤</span>
+    <span>Sahifam</span>
   </button>
 </div>
 
@@ -377,6 +611,16 @@ async function loadUserData() {
     updateBalanceDisplay();
     document.getElementById("refLink").textContent = data.referral_link;
     window._refLink = data.referral_link;
+
+    // Profil ma'lumotlari
+    const tgUser = tg.initDataUnsafe?.user;
+    const displayName = tgUser?.first_name || data.username || "Foydalanuvchi";
+    const usernameTag = tgUser?.username ? `@${tgUser.username}` : "";
+    document.getElementById("profileName").textContent = displayName;
+    document.getElementById("profileAvatar").textContent = displayName.charAt(0).toUpperCase();
+    if (usernameTag) {
+      document.getElementById("profileUsername").innerHTML = `${usernameTag} · Balans: <span id="profileBalance">${data.coins}</span> 🪙`;
+    }
   } catch (e) {
     console.error("Ma'lumot yuklashda xato:", e);
   }
@@ -385,6 +629,8 @@ async function loadUserData() {
 function updateBalanceDisplay() {
   document.getElementById("headerBalance").textContent = state.coins;
   document.getElementById("friendsBalance").textContent = state.coins;
+  const pb = document.getElementById("profileBalance");
+  if (pb) pb.textContent = state.coins;
   renderShop(); // do'kon tugmalari balansga qarab yoqiladi/o'chadi
 }
 
@@ -545,12 +791,193 @@ function renderShop() {
   });
 }
 
+// ================== SAHIFAM TAB ==================
+
+document.querySelectorAll(".menu-item").forEach(item => {
+  item.addEventListener("click", () => {
+    tg.HapticFeedback.impactOccurred("light");
+    tg.showAlert(item.dataset.msg || "Tez orada!");
+  });
+});
+
+// ================== TANLOV (QUIZ) TAB ==================
+
+const QUIZZES = [
+  {
+    id: "quiz1",
+    title: "Odam bo'lish qiyin kitobidan testlar",
+    prize: 300,
+    participants: 535,
+    questions: [
+      { q: "Asar muallifi kim?", options: ["O'lmas Umarbekov", "Cho'lpon", "Oybek", "Abdulla Qodiriy"], correct: 0 },
+      { q: "Asarning janri qanday?", options: ["She'riy to'plam", "Qissa", "Drama", "Roman"], correct: 1 },
+      { q: "Asar nechanchi yillarda yozilgan?", options: ["1950-yillar", "1960-yillar", "1970-yillar", "1980-yillar"], correct: 2 },
+      { q: "Asosiy qahramon qanday inson sifatida tasvirlanadi?", options: ["Sust va loqayd", "Faol va halol", "Ayyor", "Beparvo"], correct: 1 },
+      { q: "Asarda qaysi mavzu ko'tarilgan?", options: ["Sevgi", "Insoniylik va mas'uliyat", "Jang", "Sayohat"], correct: 1 },
+    ],
+  },
+  {
+    id: "quiz2",
+    title: "Mehrobdan chayon kitobidan testlar",
+    prize: 300,
+    participants: 428,
+    questions: [
+      { q: "Asar muallifi kim?", options: ["Abdulla Qodiriy", "Cho'lpon", "Fitrat", "Oybek"], correct: 0 },
+      { q: "Asarning bosh qahramoni kim?", options: ["Anvar", "Otabek", "Zebi", "Sardor"], correct: 0 },
+      { q: "Asar qaysi davr voqealarini aks ettiradi?", options: ["Sovet davri", "XX asr boshi Turkiston", "Hozirgi zamon", "Amir Temur davri"], correct: 1 },
+      { q: "Asarda qanday muammo ko'tariladi?", options: ["Ta'lim", "Ijtimoiy adolatsizlik", "Sport", "Texnologiya"], correct: 1 },
+      { q: "Roman qaysi janrga mansub?", options: ["Tarixiy roman", "Fantastika", "Detektiv", "Komediya"], correct: 0 },
+    ],
+  },
+];
+
+const QUESTION_TIME = 40;
+let quizState = {
+  quiz: null,
+  qIndex: 0,
+  correctCount: 0,
+  timerInterval: null,
+  timeLeft: QUESTION_TIME,
+  locked: false,
+};
+
+function renderQuizList() {
+  const list = document.getElementById("quizList");
+  list.innerHTML = "";
+  QUIZZES.forEach(quiz => {
+    const el = document.createElement("div");
+    el.className = "quiz-card";
+    el.innerHTML = `
+      <div class="quiz-title">${quiz.title}</div>
+      <div class="quiz-meta">
+        <span>❓ ${quiz.questions.length} savol</span>
+        <span>⏱ Har savolga ${QUESTION_TIME}s</span>
+        <span>🎁 ${quiz.prize} 🪙 sovrin</span>
+        <span>👥 ${quiz.participants} ishlagan</span>
+      </div>
+      <button class="quiz-start-btn" data-id="${quiz.id}">Boshlash →</button>
+    `;
+    list.appendChild(el);
+  });
+
+  list.querySelectorAll(".quiz-start-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const quiz = QUIZZES.find(q => q.id === btn.dataset.id);
+      startQuiz(quiz);
+    });
+  });
+}
+
+function startQuiz(quiz) {
+  quizState = { quiz, qIndex: 0, correctCount: 0, timerInterval: null, timeLeft: QUESTION_TIME, locked: false };
+  document.getElementById("quizListView").style.display = "none";
+  document.getElementById("quizResultView").style.display = "none";
+  document.getElementById("quizPlayView").style.display = "block";
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const { quiz, qIndex } = quizState;
+  const question = quiz.questions[qIndex];
+  quizState.locked = false;
+
+  document.getElementById("quizQuestionNum").textContent = `Savol ${qIndex + 1} / ${quiz.questions.length}`;
+  document.getElementById("quizProgressFill").style.width = `${(qIndex / quiz.questions.length) * 100}%`;
+  document.getElementById("quizQuestionText").textContent = question.q;
+
+  const optionsBox = document.getElementById("quizOptions");
+  optionsBox.innerHTML = "";
+  question.options.forEach((opt, i) => {
+    const b = document.createElement("button");
+    b.className = "quiz-option";
+    b.textContent = opt;
+    b.addEventListener("click", () => selectQuizAnswer(i));
+    optionsBox.appendChild(b);
+  });
+
+  startQuizTimer();
+}
+
+function startQuizTimer() {
+  clearInterval(quizState.timerInterval);
+  quizState.timeLeft = QUESTION_TIME;
+  document.getElementById("quizTimer").textContent = `⏱ ${quizState.timeLeft}s`;
+
+  quizState.timerInterval = setInterval(() => {
+    quizState.timeLeft--;
+    document.getElementById("quizTimer").textContent = `⏱ ${quizState.timeLeft}s`;
+    if (quizState.timeLeft <= 0) {
+      clearInterval(quizState.timerInterval);
+      selectQuizAnswer(-1); // vaqt tugadi, javob berilmadi
+    }
+  }, 1000);
+}
+
+function selectQuizAnswer(selectedIndex) {
+  if (quizState.locked) return;
+  quizState.locked = true;
+  clearInterval(quizState.timerInterval);
+
+  const question = quizState.quiz.questions[quizState.qIndex];
+  const options = document.querySelectorAll(".quiz-option");
+  options.forEach((btn, i) => {
+    if (i === question.correct) btn.classList.add("correct");
+    else if (i === selectedIndex) btn.classList.add("wrong");
+  });
+
+  if (selectedIndex === question.correct) {
+    quizState.correctCount++;
+    tg.HapticFeedback.notificationOccurred("success");
+  } else {
+    tg.HapticFeedback.notificationOccurred("error");
+  }
+
+  setTimeout(() => {
+    quizState.qIndex++;
+    if (quizState.qIndex < quizState.quiz.questions.length) {
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }, 1000);
+}
+
+async function finishQuiz() {
+  document.getElementById("quizProgressFill").style.width = "100%";
+  document.getElementById("quizPlayView").style.display = "none";
+  document.getElementById("quizResultView").style.display = "block";
+
+  const total = quizState.quiz.questions.length;
+  const correct = quizState.correctCount;
+  document.getElementById("quizScoreText").textContent = `${correct} / ${total} to'g'ri`;
+
+  try {
+    const result = await apiPost("/api/quiz_complete", { correct, quiz_id: quizState.quiz.id });
+    if (result.success) {
+      state.coins = result.coins;
+      updateBalanceDisplay();
+      document.getElementById("quizRewardText").textContent = `+${result.earned} 🪙 yutib oldingiz`;
+      showCoinToast(result.earned);
+    } else {
+      document.getElementById("quizRewardText").textContent = "Koin qo'shib bo'lmadi";
+    }
+  } catch (e) {
+    document.getElementById("quizRewardText").textContent = "Koin qo'shib bo'lmadi";
+  }
+}
+
+document.getElementById("quizBackBtn").addEventListener("click", () => {
+  document.getElementById("quizResultView").style.display = "none";
+  document.getElementById("quizListView").style.display = "block";
+});
+
 // ================== ISHGA TUSHIRISH ==================
 
 async function init() {
   await loadUserData();
   renderPage();
   renderShop();
+  renderQuizList();
 }
 
 init();
@@ -558,4 +985,3 @@ init();
 
 </body>
 </html>
-
