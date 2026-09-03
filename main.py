@@ -45,6 +45,10 @@ PORT = int(os.environ.get("PORT", 8080))
 COINS_PER_PAGE = 10
 REFERRAL_BONUS = 150
 
+# Tanlov (Quiz) uchun sozlamalar
+QUIZ_REWARD_PER_CORRECT = 15
+MAX_QUIZ_QUESTIONS = 30  # bitta tanlovda bo'lishi mumkin bo'lgan maksimal savol soni (himoya uchun)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -303,6 +307,22 @@ async def api_purchase(request: web.Request):
     return web.json_response({"success": True, "coins": new_balance})
 
 
+async def api_quiz_complete(request: web.Request):
+    """Tanlov (quiz) yakunlanganda to'g'ri javoblar soniga qarab koin beradi."""
+    body = await request.json()
+    user_id = get_authenticated_user_id(request, body)
+    if not user_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+
+    correct = int(body.get("correct", 0))
+    # Himoya: mijozdan kelgan qiymatni cheklaymiz
+    correct = max(0, min(correct, MAX_QUIZ_QUESTIONS))
+    earned = correct * QUIZ_REWARD_PER_CORRECT
+
+    new_balance = await db.add_coins(user_id, earned)
+    return web.json_response({"success": True, "coins": new_balance, "earned": earned})
+
+
 async def index_page(request: web.Request):
     return web.FileResponse("./index.html")
 
@@ -313,6 +333,7 @@ def create_app() -> web.Application:
     app.router.add_get("/api/me", api_me)
     app.router.add_post("/api/earn", api_earn)
     app.router.add_post("/api/purchase", api_purchase)
+    app.router.add_post("/api/quiz_complete", api_quiz_complete)
     return app
 
 
@@ -335,4 +356,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
