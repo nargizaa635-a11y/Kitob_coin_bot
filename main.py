@@ -38,7 +38,7 @@ FORCE_CHANNELS = [
 ]
 
 # Railway'dan olgan domeningiz (Settings -> Networking -> Generate Domain)
-WEBAPP_URL = "https://SIZNING-DOMENINGIZ.up.railway.app"
+WEBAPP_URL = "https://web-production-aa006.up.railway.app"
 
 PORT = int(os.environ.get("PORT", 8080))
 
