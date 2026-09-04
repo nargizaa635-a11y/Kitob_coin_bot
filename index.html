@@ -268,6 +268,44 @@
     font-weight: 700;
     padding: 6px 12px;
     border-radius: 10px;
+    white-space: nowrap;
+  }
+  .locked-tag {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .discount-badge {
+    display: inline-block;
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .old-price {
+    text-decoration: line-through;
+    color: var(--text-dim);
+    margin-right: 6px;
+    font-weight: 500;
+  }
+  .premium-only-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent-2), #d97706);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
   }
 
   /* ===== SAHIFAM (Profil) ===== */
@@ -313,6 +351,7 @@
     gap: 12px;
     padding: 14px;
     margin-bottom: 14px;
+    cursor: pointer;
   }
   .premium-banner .emoji { font-size: 26px; }
   .premium-banner .title { font-weight: 700; font-size: 14px; }
@@ -325,6 +364,7 @@
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 10px;
+    white-space: nowrap;
   }
   .menu-list { padding: 0; }
   .menu-item {
@@ -532,13 +572,18 @@
       </div>
       <div class="info-text">
         👥 Do'stingizni shu havola orqali taklif qiling. U kanallarga a'zo bo'lib, ilovani ochsa —
-        sizga <b>+150 koin</b> avtomatik qo'shiladi!
+        sizga <b>+300 koin</b> avtomatik qo'shiladi!
       </div>
     </div>
   </div>
 
   <!-- ===== DO'KON TAB ===== -->
   <div class="tab-content" id="tab-shop">
+    <div class="card" id="shopPremiumNote" style="display:none;">
+      <div class="info-text" style="margin-top:0; color: var(--success); font-weight:700;">
+        🌟 Premium faol — barcha narxlarga 20% chegirma qo'llanildi!
+      </div>
+    </div>
     <div class="card">
       <div id="shopList"></div>
     </div>
@@ -562,13 +607,13 @@
         <div class="stat-box"><div class="num" id="statBadges">0</div><div class="label">Nishonlar</div></div>
       </div>
 
-      <div class="card premium-banner">
-        <div class="emoji">⭐</div>
+      <div class="card premium-banner" id="premiumBanner">
+        <div class="emoji" id="premiumEmoji">⭐</div>
         <div>
-          <div class="title">Premium yoqilmagan</div>
-          <div class="sub">Shartlar va premium olish — bosing</div>
+          <div class="title" id="premiumTitle">Premium yoqilmagan</div>
+          <div class="sub" id="premiumSub">Shartlar va premium olish — bosing</div>
         </div>
-        <div class="premium-tag">Yo'q</div>
+        <div class="premium-tag" id="premiumTag">Yo'q</div>
       </div>
 
       <div class="card menu-list">
@@ -630,7 +675,7 @@
         </div>
       </div>
       <div class="card">
-        <div style="color:var(--text-dim); font-size:12px; margin-bottom:10px;">Ilova versiyasi: 1.1</div>
+        <div style="color:var(--text-dim); font-size:12px; margin-bottom:10px;">Ilova versiyasi: 1.2</div>
         <button class="btn btn-disabled" id="resetProgressBtn">🗑 Mahalliy ma'lumotlarni tozalash</button>
       </div>
     </div>
@@ -688,6 +733,12 @@ let state = {
   currentPage: 0,
   timerInterval: null,
   timeLeft: 30,
+  // Premium bilan bog'liq — /api/me dan yuklanadi, hardcode QILINMAYDI
+  pageTimerSeconds: 30,
+  coinsPerPage: 10,
+  isPremium: false,
+  premiumExpiresAt: null,
+  ownedItems: [],
 };
 
 const BOOK_PAGES = [
@@ -724,7 +775,13 @@ async function loadUserData() {
       return;
     }
     state.coins = data.coins;
+    state.pageTimerSeconds = data.page_timer_seconds || 30;
+    state.coinsPerPage = data.coins_per_page || 10;
+    state.isPremium = !!data.is_premium;
+    state.premiumExpiresAt = data.premium_expires_at || null;
+
     updateBalanceDisplay();
+    updatePremiumBanner();
     document.getElementById("refLink").textContent = data.referral_link;
     window._refLink = data.referral_link;
 
@@ -745,8 +802,41 @@ async function loadUserData() {
     if (usernameTag) {
       document.getElementById("profileUsername").innerHTML = `${usernameTag} · Balans: <span id="profileBalance">${data.coins}</span> 🪙`;
     }
+
+    // Kunlik bonus (faqat Premium) — agar bugun berilgan bo'lsa, xush kelibsiz tostida ko'rsatamiz
+    if (data.daily_bonus_earned && data.daily_bonus_earned > 0) {
+      setTimeout(() => showCoinToast(data.daily_bonus_earned, "Kunlik bonus"), 700);
+    }
   } catch (e) {
     console.error("Ma'lumot yuklashda xato:", e);
+  }
+}
+
+function updatePremiumBanner() {
+  const emoji = document.getElementById("premiumEmoji");
+  const title = document.getElementById("premiumTitle");
+  const sub = document.getElementById("premiumSub");
+  const tag = document.getElementById("premiumTag");
+  const shopNote = document.getElementById("shopPremiumNote");
+
+  if (state.isPremium) {
+    emoji.textContent = "🌟";
+    title.textContent = "Premium faol";
+    sub.textContent = state.premiumExpiresAt
+      ? `Amal qilish muddati: ${state.premiumExpiresAt} gacha`
+      : "Barcha imtiyozlar yoqilgan";
+    tag.textContent = "Faol";
+    tag.style.background = "rgba(22, 163, 74, 0.14)";
+    tag.style.color = "var(--success)";
+    if (shopNote) shopNote.style.display = "block";
+  } else {
+    emoji.textContent = "⭐";
+    title.textContent = "Premium yoqilmagan";
+    sub.textContent = "2x koin, tezroq taymer, chegirmalar — bosing";
+    tag.textContent = "Yo'q";
+    tag.style.background = "";
+    tag.style.color = "";
+    if (shopNote) shopNote.style.display = "none";
   }
 }
 
@@ -758,9 +848,9 @@ function updateBalanceDisplay() {
   renderShop(); // do'kon tugmalari balansga qarab yoqiladi/o'chadi
 }
 
-function showCoinToast(amount) {
+function showCoinToast(amount, label) {
   const toast = document.getElementById("coinToast");
-  toast.textContent = `+${amount} 🪙 qo'shildi!`;
+  toast.textContent = label ? `+${amount} 🪙 ${label}!` : `+${amount} 🪙 qo'shildi!`;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2000);
 }
@@ -775,6 +865,11 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
     tg.HapticFeedback.impactOccurred("light");
   });
+});
+
+// Premium banner bosilsa — to'g'ridan-to'g'ri Do'kon bo'limiga o'tkazamiz
+document.getElementById("premiumBanner").addEventListener("click", () => {
+  document.querySelector('.tab-btn[data-tab="shop"]').click();
 });
 
 // ================== KITOB O'QISH MANTIG'I ==================
@@ -803,7 +898,7 @@ function renderPage() {
 
 function startPageTimer() {
   clearInterval(state.timerInterval);
-  state.timeLeft = 30;
+  state.timeLeft = state.pageTimerSeconds;
   document.getElementById("timerCircle").textContent = state.timeLeft;
 
   state.timerInterval = setInterval(() => {
@@ -823,14 +918,14 @@ async function onTimerFinished() {
   nextBtn.style.display = "block";
   nextBtn.className = "btn btn-primary";
   nextBtn.disabled = false;
-  nextBtn.textContent = "Keyingi sahifa (+10 🪙)";
+  nextBtn.textContent = `Keyingi sahifa (+${state.coinsPerPage} 🪙)`;
 
   try {
-    const result = await apiPost("/api/earn", { amount: 10 });
+    const result = await apiPost("/api/earn", { amount: state.coinsPerPage });
     if (result.success) {
       state.coins = result.coins;
       updateBalanceDisplay();
-      showCoinToast(10);
+      showCoinToast(state.coinsPerPage);
       tg.HapticFeedback.notificationOccurred("success");
     }
   } catch (e) {
@@ -860,14 +955,20 @@ document.getElementById("copyRefBtn").addEventListener("click", () => {
   });
 });
 
-// ================== DO'KON TAB (kitob yetkazib berish bilan) ==================
+// ================== DO'KON TAB (narx/chegirma/qulf — barchasi serverdan) ==================
 
-const SHOP_ITEMS = [
-  { id: "book1", emoji: "📗", name: "Yangi kitob: \"Yulduzlar sayohati\"", cost: 100, type: "book" },
-  { id: "book2", emoji: "📘", name: "Yangi kitob: \"Vaqt mashinasi\"", cost: 150, type: "book" },
-  { id: "badge", emoji: "🏅", name: "Faxriy nishon (profilga)", cost: 80, type: "badge" },
-  { id: "premium", emoji: "⭐", name: "1 haftalik Premium a'zolik", cost: 500, type: "premium" },
-];
+let shopItemsData = [];
+
+async function loadShopItems() {
+  try {
+    const data = await apiGet("/api/shop_items");
+    shopItemsData = data.items || [];
+  } catch (e) {
+    console.error("Do'kon ro'yxatini yuklashda xato:", e);
+    shopItemsData = [];
+  }
+  renderShop();
+}
 
 async function refreshOwnedItems() {
   try {
@@ -879,15 +980,19 @@ async function refreshOwnedItems() {
   }
 }
 
-function isOwned(itemId) {
-  return (state.ownedItems || []).some(i => i.item_id === itemId);
-}
-
 function renderShop() {
   const list = document.getElementById("shopList");
+  if (!list) return;
   list.innerHTML = "";
-  SHOP_ITEMS.forEach(item => {
-    const owned = isOwned(item.id);
+
+  if (shopItemsData.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🎁</div><div>Do'kon yuklanmoqda...</div></div>`;
+    return;
+  }
+
+  shopItemsData.forEach(item => {
+    const owned = item.owned;
+    const locked = item.locked;
     const canAfford = state.coins >= item.cost;
     const el = document.createElement("div");
     el.className = "shop-item";
@@ -895,17 +1000,25 @@ function renderShop() {
     let buttonHtml;
     if (owned) {
       buttonHtml = `<div class="owned-tag">✅ Olingan</div>`;
+    } else if (locked) {
+      buttonHtml = `<div class="locked-tag">🔒 Premium</div>`;
     } else {
-      buttonHtml = `<button class="buy-btn" ${canAfford ? "" : "disabled"} data-id="${item.id}">
+      buttonHtml = `<button class="buy-btn" ${canAfford ? "" : "disabled"} data-id="${item.item_id}">
         ${canAfford ? "Sotib olish" : "Yetarli emas"}
       </button>`;
     }
 
+    const priceHtml = item.discounted
+      ? `<span class="old-price">${item.base_cost} 🪙</span>${item.cost} 🪙 <span class="discount-badge">-20%</span>`
+      : `${item.cost} 🪙`;
+
+    const nameExtra = item.premium_only ? `<span class="premium-only-badge">PREMIUM</span>` : "";
+
     el.innerHTML = `
       <div class="shop-emoji">${item.emoji}</div>
       <div class="shop-info">
-        <div class="shop-name">${item.name}</div>
-        <div class="shop-cost">${item.cost} 🪙</div>
+        <div class="shop-name">${item.name}${nameExtra}</div>
+        <div class="shop-cost">${priceHtml}</div>
       </div>
       ${buttonHtml}
     `;
@@ -915,25 +1028,39 @@ function renderShop() {
   list.querySelectorAll(".buy-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       const itemId = btn.dataset.id;
-      const item = SHOP_ITEMS.find(i => i.id === itemId);
+      const item = shopItemsData.find(i => i.item_id === itemId);
       btn.disabled = true;
       btn.textContent = "...";
       try {
         const result = await apiPost("/api/purchase", { item: itemId });
         if (result.success) {
           state.coins = result.coins;
-          await refreshOwnedItems(); // serverdan yangilangan xaridlar ro'yxatini olamiz
+          if (result.is_premium) {
+            state.isPremium = true;
+            state.premiumExpiresAt = result.premium_expires_at || state.premiumExpiresAt;
+            updatePremiumBanner();
+            await loadUserData(); // timer/coin_per_page kabi qiymatlarni yangilash uchun
+          }
+          await loadShopItems();
+          await refreshOwnedItems();
           updateBalanceDisplay();
+          renderMyBooks();
           tg.HapticFeedback.notificationOccurred("success");
           if (item.type === "book") {
             tg.showAlert(`✅ "${item.name}" muvaffaqiyatli sotib olindi! Uni "Sahifam → Mening kitoblarim" bo'limidan topasiz.`);
+          } else if (item.type === "premium") {
+            tg.showAlert("🌟 Premium faollashtirildi! Endi 2x koin, tezroq taymer va 20% chegirmadan foydalanasiz.");
           } else {
             tg.showAlert("✅ Xarid muvaffaqiyatli amalga oshirildi!");
           }
         } else if (result.error === "already_owned") {
           tg.showAlert("Siz bu mahsulotni allaqachon sotib olgansiz.");
-        } else {
+        } else if (result.error === "premium_required") {
+          tg.showAlert("🔒 Bu mahsulot faqat Premium foydalanuvchilar uchun mavjud.");
+        } else if (result.error === "insufficient_funds") {
           tg.showAlert("❌ Koin yetarli emas.");
+        } else {
+          tg.showAlert("❌ Xatolik yuz berdi.");
         }
       } catch (e) {
         tg.showAlert("Xatolik yuz berdi, qayta urinib ko'ring.");
@@ -972,6 +1099,7 @@ document.getElementById("helpBackBtn").addEventListener("click", () => showProfi
 function renderMyBooks() {
   const owned = (state.ownedItems || []).filter(i => i.type === "book");
   const list = document.getElementById("myBooksList");
+  if (!list) return;
 
   if (owned.length === 0) {
     list.innerHTML = `
@@ -1010,7 +1138,7 @@ setupToggle("notifToggle", "pref_notifications", true);
 setupToggle("soundToggle", "pref_sounds", true);
 
 document.getElementById("resetProgressBtn").addEventListener("click", () => {
-  tg.showConfirm("Ushbu qurilmadagi barcha mahalliy ma'lumotlar (sotib olingan kitoblar ro'yxati, sozlamalar) o'chiriladi. Davom etilsinmi?", (confirmed) => {
+  tg.showConfirm("Ushbu qurilmadagi barcha mahalliy ma'lumotlar (sozlamalar) o'chiriladi. Davom etilsinmi?", (confirmed) => {
     if (confirmed) {
       localStorage.clear();
       tg.showAlert("Mahalliy ma'lumotlar tozalandi.");
@@ -1021,6 +1149,10 @@ document.getElementById("resetProgressBtn").addEventListener("click", () => {
 });
 
 // ================== TANLOV (QUIZ) TAB ==================
+// Eslatma: quiz1 va quiz2 haqiqiy nashr etilgan o'zbek adabiyoti asarlari (Odam bo'lish qiyin,
+// Mehrobdan chayon) haqidagi bilim testlari. quiz3-5 esa mavzu jihatidan shu adabiyot an'analaridan
+// (mehnat va orzu, umid va ishonchsizlik, an'ana va zamon ziddiyati) ilhomlanib, ushbu ilova uchun
+// maxsus yozilgan ASL (original) hikoyalar asosida tuzilgan.
 
 const QUIZZES = [
   {
@@ -1049,6 +1181,46 @@ const QUIZZES = [
       { q: "Roman qaysi janrga mansub?", options: ["Tarixiy roman", "Fantastika", "Detektiv", "Komediya"], correct: 0 },
     ],
   },
+  {
+    id: "quiz3",
+    title: "\"Kumush tong\" hikoyasidan testlar",
+    prize: 100,
+    participants: 212,
+    questions: [
+      { q: "\"Kumush tong\" hikoyasining bosh qahramoni kim?", options: ["Zebiniso", "Gulnora", "Mohira", "Nodira"], correct: 1 },
+      { q: "Gulnora qaysi hunar bilan shug'ullanadi?", options: ["To'quvchilik", "Duradgorlik", "Temirchilik", "Kulolchilik"], correct: 0 },
+      { q: "Gulnora nima bo'lishni orzu qiladi?", options: ["Shifokor", "O'qituvchi", "Aktrisa", "Muhandis"], correct: 1 },
+      { q: "Otasi Gulnorani nima qilishini xohlaydi?", options: ["Universitetga yubormoqchi", "Turmushga uzatmoqchi", "Shaharga ko'chirmoqchi", "Ishga joylashtirmoqchi"], correct: 1 },
+      { q: "Voqealar qaysi shaharda sodir bo'ladi?", options: ["Samarqand", "Marg'ilon", "Xiva", "Buxoro"], correct: 1 },
+    ],
+  },
+  {
+    id: "quiz4",
+    title: "\"Ikkilanish\" hikoyasidan testlar",
+    prize: 100,
+    participants: 176,
+    questions: [
+      { q: "\"Ikkilanish\" hikoyasining bosh qahramoni kim?", options: ["Sardor", "Anvar", "Jasur", "Bekzod"], correct: 1 },
+      { q: "Anvar qayerdan qaytib keladi?", options: ["Chet eldan", "Armiyadan", "Qishloqdan", "Poytaxtdan"], correct: 0 },
+      { q: "Hikoyaning asosiy mavzusi nima?", options: ["Sevgi uchburchagi", "Umidsizlik va ishonch", "Sarguzasht", "Jinoyat"], correct: 1 },
+      { q: "Anvar nimalarga shubha bilan qaray boshlaydi?", options: ["Mahalliy rahbarlarning va'dalariga", "Oilaviy an'analarga", "Do'stlariga", "Tabiat hodisalariga"], correct: 0 },
+      { q: "Hikoya qanday yakunlanadi?", options: ["Ochiq final bilan", "Baxtli to'y bilan", "Fojiali o'lim bilan", "Kulgili voqea bilan"], correct: 0 },
+    ],
+  },
+  {
+    id: "quiz5",
+    title: "\"Ikki dunyo oralig'ida\" hikoyasidan testlar 🌟",
+    prize: 140,
+    participants: 94,
+    premium: true,
+    questions: [
+      { q: "\"Ikki dunyo oralig'ida\" hikoyasi kimlar haqida?", options: ["Ikki og'a-ini", "Buvi va nabira", "Er-xotin", "Ustoz va shogird"], correct: 1 },
+      { q: "Buvining ismi nima?", options: ["Robiya", "Saodat", "Gulchehra", "Malika"], correct: 0 },
+      { q: "Nabiraning ismi nima?", options: ["Dilnoza", "Madina", "Shahnoza", "Aziza"], correct: 1 },
+      { q: "Voqealar qaysi shaharda o'tadi?", options: ["Toshkent", "Andijon", "Namangan", "Qarshi"], correct: 0 },
+      { q: "Hikoyaning markaziy g'oyasi nima?", options: ["An'ana va zamonaviylik o'rtasidagi ziddiyat", "Sevgi uchburchagi", "Jinoiy voqea", "Tabiat mo'jizasi"], correct: 0 },
+    ],
+  },
 ];
 
 const QUESTION_TIME = 40;
@@ -1065,6 +1237,7 @@ function renderQuizList() {
   const list = document.getElementById("quizList");
   list.innerHTML = "";
   QUIZZES.forEach(quiz => {
+    const locked = quiz.premium && !state.isPremium;
     const el = document.createElement("div");
     el.className = "quiz-card";
     el.innerHTML = `
@@ -1075,15 +1248,22 @@ function renderQuizList() {
         <span>🎁 ${quiz.prize} 🪙 sovrin</span>
         <span>👥 ${quiz.participants} ishlagan</span>
       </div>
-      <button class="quiz-start-btn" data-id="${quiz.id}">Boshlash →</button>
+      ${locked
+        ? `<button class="quiz-start-btn" style="background:var(--card-2); color:var(--text-dim);" data-locked="1">🔒 Faqat Premium uchun</button>`
+        : `<button class="quiz-start-btn" data-id="${quiz.id}">Boshlash →</button>`}
     `;
     list.appendChild(el);
   });
 
-  list.querySelectorAll(".quiz-start-btn").forEach(btn => {
+  list.querySelectorAll(".quiz-start-btn[data-id]").forEach(btn => {
     btn.addEventListener("click", () => {
       const quiz = QUIZZES.find(q => q.id === btn.dataset.id);
       startQuiz(quiz);
+    });
+  });
+  list.querySelectorAll(".quiz-start-btn[data-locked]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tg.showAlert("🔒 Bu tanlov faqat Premium foydalanuvchilar uchun ochiq. Do'kon bo'limidan Premium sotib oling!");
     });
   });
 }
@@ -1189,6 +1369,7 @@ async function finishQuiz() {
 document.getElementById("quizBackBtn").addEventListener("click", () => {
   document.getElementById("quizResultView").style.display = "none";
   document.getElementById("quizListView").style.display = "block";
+  renderQuizList(); // Premium holati o'zgargan bo'lishi mumkin — qulflarni yangilaymiz
 });
 
 // ================== ISHGA TUSHIRISH ==================
@@ -1196,8 +1377,8 @@ document.getElementById("quizBackBtn").addEventListener("click", () => {
 async function init() {
   await loadUserData();
   await refreshOwnedItems();
+  await loadShopItems();
   renderPage();
-  renderShop();
   renderQuizList();
   renderMyBooks();
 }
@@ -1207,3 +1388,4 @@ init();
 
 </body>
 </html>
+
