@@ -32,6 +32,23 @@ async def init_db():
                 joined_date TEXT
             )
         """)
+        # Statistika uchun yangi ustunlar (eski jadvalga xavfsiz qo'shiladi)
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS pages_read INTEGER DEFAULT 0")
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 0")
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date TEXT")
+
+        # Do'kondan qilingan xaridlar - endi doimiy saqlanadi (localStorage emas)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS purchases (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                item_id TEXT NOT NULL,
+                item_name TEXT,
+                item_emoji TEXT,
+                item_type TEXT,
+                purchased_at TEXT
+            )
+        """)
 
 
 # ---------- FOYDALANUVCHILAR ----------
@@ -74,3 +91,84 @@ async def get_all_users():
     async with _pool.acquire() as conn:
         return await conn.fetch("SELECT * FROM users")
 
+
+# ---------- STATISTIKA (Sahifam uchun) ----------
+
+async def increment_pages_read(user_id: int) -> int:
+    """Kitob sahifasi o'qilganda chaqiriladi, jami o'qilgan sahifalar sonini qaytaradi."""
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "UPDATE users SET pages_read = pages_read + 1 WHERE user_id = $1 RETURNING pages_read",
+            user_id,
+        )
+        return row["pages_read"] if row else 0
+
+
+async def update_streak(user_id: int) -> int:
+    """Foydalanuvchi ilovani ochganda kunlik seriyani (streak) yangilaydi."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    async with _pool.acquire() as conn:
+        user = await conn.fetchrow(
+            "SELECT last_active_date, streak_days FROM users WHERE user_id = $1", user_id
+        )
+        if not user:
+            return 0
+
+        last_date = user["last_active_date"]
+        streak = user["streak_days"] or 0
+
+        if last_date == today:
+            return streak  # bugun allaqachon hisoblangan
+
+        if last_date:
+            try:
+                last_dt = datetime.strptime(last_date, "%Y-%m-%d")
+                today_dt = datetime.strptime(today, "%Y-%m-%d")
+                diff_days = (today_dt - last_dt).days
+            except Exception:
+                diff_days = None
+            streak = streak + 1 if diff_days == 1 else 1
+        else:
+            streak = 1
+
+        await conn.execute(
+            "UPDATE users SET streak_days = $1, last_active_date = $2 WHERE user_id = $3",
+            streak, today, user_id,
+        )
+        return streak
+
+
+# ---------- DO'KON XARIDLARI ----------
+
+async def is_item_owned(user_id: int, item_id: str) -> bool:
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT 1 FROM purchases WHERE user_id = $1 AND item_id = $2", user_id, item_id
+        )
+        return row is not None
+
+
+async def add_purchase(user_id: int, item_id: str, item_name: str, item_emoji: str, item_type: str):
+    async with _pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO purchases (user_id, item_id, item_name, item_emoji, item_type, purchased_at) "
+            "VALUES ($1, $2, $3, $4, $5, $6)",
+            user_id, item_id, item_name, item_emoji, item_type,
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+        )
+
+
+async def get_purchases(user_id: int):
+    async with _pool.acquire() as conn:
+        return await conn.fetch(
+            "SELECT * FROM purchases WHERE user_id = $1 ORDER BY purchased_at DESC", user_id
+        )
+
+
+async def count_purchases_by_type(user_id: int, item_type: str) -> int:
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT COUNT(*) as cnt FROM purchases WHERE user_id = $1 AND item_type = $2",
+            user_id, item_type,
+        )
+        return row["cnt"] if row else 0
