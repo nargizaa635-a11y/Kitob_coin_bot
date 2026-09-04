@@ -7,17 +7,17 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: #0f1117;
-    --card: #1a1d29;
-    --card-2: #212434;
+    --bg: #F5F4FF;
+    --card: #FFFFFF;
+    --card-2: #F0EEFB;
     --accent: #4F46E5;
     --accent-light: #6366F1;
-    --accent-2: #FBBF24;
-    --text: #f0f0f5;
-    --text-dim: #9a9cab;
-    --success: #4ade80;
-    --danger: #f87171;
-    --border: #2a2e42;
+    --accent-2: #F59E0B;
+    --text: #1E1B2E;
+    --text-dim: #6B7280;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --border: #E5E1F5;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -43,10 +43,11 @@
     border-radius: 20px;
     font-weight: 700;
     font-size: 14px;
+    color: white;
     display: flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
   }
   .container {
     padding: 0 16px;
@@ -57,6 +58,7 @@
     border-radius: 16px;
     padding: 18px;
     margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
   }
   .tabs {
     position: fixed;
@@ -84,8 +86,8 @@
     transition: all 0.2s;
   }
   .tab-btn.active {
-    color: var(--accent-light);
-    background: rgba(79, 70, 229, 0.15);
+    color: var(--accent);
+    background: rgba(79, 70, 229, 0.1);
   }
   .tab-btn .icon { font-size: 19px; }
   .tab-content { display: none; }
@@ -114,7 +116,7 @@
   .page-text {
     line-height: 1.7;
     font-size: 15px;
-    color: #dcdce6;
+    color: #33303f;
     min-height: 180px;
   }
   .timer-box {
@@ -126,7 +128,7 @@
     height: 64px;
     border-radius: 50%;
     border: 4px solid var(--border);
-    border-top-color: var(--accent-light);
+    border-top-color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -152,8 +154,8 @@
     color: white;
   }
   .btn-amber {
-    background: linear-gradient(135deg, var(--accent-2), #f59e0b);
-    color: #1a1200;
+    background: linear-gradient(135deg, var(--accent-2), #d97706);
+    color: white;
   }
   .btn-disabled {
     background: var(--card-2);
@@ -166,14 +168,14 @@
     left: 50%;
     transform: translateX(-50%) translateY(-100px);
     background: var(--success);
-    color: #063;
+    color: white;
     padding: 12px 20px;
     border-radius: 30px;
     font-weight: 700;
     font-size: 14px;
     z-index: 200;
     transition: transform 0.35s ease;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
   }
   .coin-toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -185,7 +187,7 @@
   .big-balance .num {
     font-size: 42px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent-light), var(--accent-2));
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -243,7 +245,7 @@
   .shop-emoji { font-size: 30px; }
   .shop-info { flex: 1; }
   .shop-name { font-weight: 700; font-size: 14px; }
-  .shop-cost { color: var(--accent-2); font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .shop-cost { color: #b45309; font-size: 13px; font-weight: 600; margin-top: 2px; }
   .buy-btn {
     background: var(--accent);
     color: white;
@@ -255,9 +257,17 @@
     cursor: pointer;
   }
   .buy-btn:disabled {
-    background: var(--card);
+    background: #E5E1F5;
     color: var(--text-dim);
     cursor: not-allowed;
+  }
+  .owned-tag {
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
   }
 
   /* ===== SAHIFAM (Profil) ===== */
@@ -295,7 +305,7 @@
     padding: 12px 6px;
     text-align: center;
   }
-  .stat-box .num { font-size: 18px; font-weight: 800; color: var(--accent-light); }
+  .stat-box .num { font-size: 18px; font-weight: 800; color: var(--accent); }
   .stat-box .label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
   .premium-banner {
     display: flex;
@@ -338,6 +348,7 @@
     border-radius: 16px;
     padding: 16px;
     margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
   }
   .quiz-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
   .quiz-meta {
@@ -387,13 +398,67 @@
     margin-bottom: 10px;
     cursor: pointer;
   }
-  .quiz-option.correct { background: rgba(74, 222, 128, 0.18); border-color: var(--success); color: var(--success); }
-  .quiz-option.wrong { background: rgba(248, 113, 113, 0.18); border-color: var(--danger); color: var(--danger); }
-  .quiz-timer { text-align: center; color: var(--accent-2); font-weight: 700; font-size: 13px; margin-bottom: 14px; }
+  .quiz-option.correct { background: rgba(22, 163, 74, 0.14); border-color: var(--success); color: var(--success); }
+  .quiz-option.wrong { background: rgba(220, 38, 38, 0.12); border-color: var(--danger); color: var(--danger); }
+  .quiz-timer { text-align: center; color: #b45309; font-weight: 700; font-size: 13px; margin-bottom: 14px; }
   .quiz-result { text-align: center; padding: 20px 0; }
   .quiz-result .emoji { font-size: 48px; margin-bottom: 10px; }
-  .quiz-result .score { font-size: 28px; font-weight: 800; color: var(--accent-light); margin-bottom: 4px; }
-  .quiz-result .reward { color: var(--accent-2); font-weight: 700; font-size: 15px; margin-bottom: 20px; }
+  .quiz-result .score { font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+  .quiz-result .reward { color: #b45309; font-weight: 700; font-size: 15px; margin-bottom: 20px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .empty-state .emoji { font-size: 36px; margin-bottom: 10px; }
+  .owned-book-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card-2);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .owned-book-item .emoji { font-size: 26px; }
+  .owned-book-item .name { font-weight: 700; font-size: 14px; }
+  .owned-book-item .date { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-row .title { font-weight: 700; font-size: 14px; }
+  .toggle-switch {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on::after { transform: translateX(18px); }
 </style>
 </head>
 <body>
@@ -481,55 +546,106 @@
 
   <!-- ===== SAHIFAM TAB ===== -->
   <div class="tab-content" id="tab-profile">
-    <div class="profile-header">
-      <div class="avatar" id="profileAvatar">?</div>
-      <div>
-        <div class="profile-name" id="profileName">Foydalanuvchi</div>
-        <div class="profile-username" id="profileUsername">Balans: <span id="profileBalance">0</span> 🪙</div>
+    <div id="profileMainView">
+      <div class="profile-header">
+        <div class="avatar" id="profileAvatar">?</div>
+        <div>
+          <div class="profile-name" id="profileName">Foydalanuvchi</div>
+          <div class="profile-username" id="profileUsername">Balans: <span id="profileBalance">0</span> 🪙</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="num" id="statBooks">0</div><div class="label">Kitoblar</div></div>
+        <div class="stat-box"><div class="num" id="statHours">0</div><div class="label">Soat</div></div>
+        <div class="stat-box"><div class="num" id="statStreak">0</div><div class="label">Kun seriya</div></div>
+        <div class="stat-box"><div class="num" id="statBadges">0</div><div class="label">Nishonlar</div></div>
+      </div>
+
+      <div class="card premium-banner">
+        <div class="emoji">⭐</div>
+        <div>
+          <div class="title">Premium yoqilmagan</div>
+          <div class="sub">Shartlar va premium olish — bosing</div>
+        </div>
+        <div class="premium-tag">Yo'q</div>
+      </div>
+
+      <div class="card menu-list">
+        <div class="menu-item" data-section="myBooks">
+          <div class="emoji">📖</div>
+          <div><div class="title">Mening kitoblarim</div><div class="sub">O'qigan va sotib olgan kitoblarim</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-msg="Sevimli kitoblar bo'limi tez orada! Kitoblar katalogi qo'shilgach ishga tushadi.">
+          <div class="emoji">❤️</div>
+          <div><div class="title">Sevimli kitoblarim</div><div class="sub">Yoqtirgan kitoblaringiz</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-msg="Sharhlar bo'limi tez orada!">
+          <div class="emoji">✍️</div>
+          <div><div class="title">Mening sharhlarim</div><div class="sub">Qoldirgan sharh va izohlaringiz</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-section="settings">
+          <div class="emoji">⚙️</div>
+          <div><div class="title">Sozlamalar</div><div class="sub">Hisob va ilova sozlamalari</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-section="help">
+          <div class="emoji">🎧</div>
+          <div><div class="title">Yordam va qo'llab-quvvatlash</div><div class="sub">Savollar va takliflar</div></div>
+          <div class="arrow">›</div>
+        </div>
       </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat-box"><div class="num" id="statBooks">0</div><div class="label">Kitoblar</div></div>
-      <div class="stat-box"><div class="num" id="statHours">0</div><div class="label">Soat</div></div>
-      <div class="stat-box"><div class="num" id="statStreak">0</div><div class="label">Kun seriya</div></div>
-      <div class="stat-box"><div class="num" id="statBadges">0</div><div class="label">Nishonlar</div></div>
+    <!-- Mening kitoblarim -->
+    <div id="myBooksView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="myBooksBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Mening kitoblarim</div>
+      </div>
+      <div class="card" id="myBooksList"></div>
     </div>
 
-    <div class="card premium-banner">
-      <div class="emoji">⭐</div>
-      <div>
-        <div class="title">Premium yoqilmagan</div>
-        <div class="sub">Shartlar va premium olish — bosing</div>
+    <!-- Sozlamalar -->
+    <div id="settingsView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="settingsBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Sozlamalar</div>
       </div>
-      <div class="premium-tag">Yo'q</div>
+      <div class="card">
+        <div class="toggle-row">
+          <div class="title">🔔 Bildirishnomalar</div>
+          <div class="toggle-switch on" id="notifToggle"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="title">📳 Ovoz effektlari</div>
+          <div class="toggle-switch on" id="soundToggle"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="title">🌐 Til</div>
+          <div style="color:var(--text-dim); font-size:13px; font-weight:700;">O'zbekcha</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="color:var(--text-dim); font-size:12px; margin-bottom:10px;">Ilova versiyasi: 1.1</div>
+        <button class="btn btn-disabled" id="resetProgressBtn">🗑 Mahalliy ma'lumotlarni tozalash</button>
+      </div>
     </div>
 
-    <div class="card menu-list">
-      <div class="menu-item" data-msg="Mening kitoblarim bo'limi tez orada!">
-        <div class="emoji">📖</div>
-        <div><div class="title">Mening kitoblarim</div><div class="sub">O'qigan va o'qimoqchi bo'lgan kitoblarim</div></div>
-        <div class="arrow">›</div>
+    <!-- Yordam -->
+    <div id="helpView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="helpBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Yordam</div>
       </div>
-      <div class="menu-item" data-msg="Sevimli kitoblar bo'limi tez orada!">
-        <div class="emoji">❤️</div>
-        <div><div class="title">Sevimli kitoblarim</div><div class="sub">Yoqtirgan kitoblaringiz</div></div>
-        <div class="arrow">›</div>
-      </div>
-      <div class="menu-item" data-msg="Sharhlar bo'limi tez orada!">
-        <div class="emoji">✍️</div>
-        <div><div class="title">Mening sharhlarim</div><div class="sub">Qoldirgan sharh va izohlaringiz</div></div>
-        <div class="arrow">›</div>
-      </div>
-      <div class="menu-item" data-msg="Sozlamalar tez orada!">
-        <div class="emoji">⚙️</div>
-        <div><div class="title">Sozlamalar</div><div class="sub">Hisob va ilova sozlamalari</div></div>
-        <div class="arrow">›</div>
-      </div>
-      <div class="menu-item" data-msg="Yordam va qo'llab-quvvatlash tez orada!">
-        <div class="emoji">🎧</div>
-        <div><div class="title">Yordam va qo'llab-quvvatlash</div><div class="sub">Savollar va takliflar</div></div>
-        <div class="arrow">›</div>
+      <div class="card">
+        <div class="info-text" style="margin-top:0;">
+          ❓ Savolingiz bormi yoki muammoga duch keldingizmi?<br><br>
+          Admin bilan bog'lanish uchun botga to'g'ridan-to'g'ri xabar yozing, biz tez orada javob beramiz.
+        </div>
       </div>
     </div>
   </div>
@@ -612,6 +728,14 @@ async function loadUserData() {
     document.getElementById("refLink").textContent = data.referral_link;
     window._refLink = data.referral_link;
 
+    // Haqiqiy statistika (serverdan)
+    if (data.stats) {
+      document.getElementById("statBooks").textContent = data.stats.books;
+      document.getElementById("statHours").textContent = data.stats.hours;
+      document.getElementById("statStreak").textContent = data.stats.streak;
+      document.getElementById("statBadges").textContent = data.stats.badges;
+    }
+
     // Profil ma'lumotlari
     const tgUser = tg.initDataUnsafe?.user;
     const displayName = tgUser?.first_name || data.username || "Foydalanuvchi";
@@ -664,7 +788,6 @@ function renderPage() {
   const timerBox = document.getElementById("timerBox");
 
   if (state.currentPage >= BOOK_PAGES.length - 1) {
-    // Kitob tugadi
     timerBox.style.display = "none";
     nextBtn.style.display = "block";
     nextBtn.textContent = "📖 Kitob tugadi!";
@@ -702,7 +825,6 @@ async function onTimerFinished() {
   nextBtn.disabled = false;
   nextBtn.textContent = "Keyingi sahifa (+10 🪙)";
 
-  // Koinni serverga yozamiz
   try {
     const result = await apiPost("/api/earn", { amount: 10 });
     if (result.success) {
@@ -738,48 +860,78 @@ document.getElementById("copyRefBtn").addEventListener("click", () => {
   });
 });
 
-// ================== DO'KON TAB ==================
+// ================== DO'KON TAB (kitob yetkazib berish bilan) ==================
 
 const SHOP_ITEMS = [
-  { id: "book1", emoji: "📗", name: "Yangi kitob: \"Yulduzlar sayohati\"", cost: 100 },
-  { id: "book2", emoji: "📘", name: "Yangi kitob: \"Vaqt mashinasi\"", cost: 150 },
-  { id: "badge", emoji: "🏅", name: "Faxriy nishon (profilga)", cost: 80 },
-  { id: "premium", emoji: "⭐", name: "1 haftalik Premium a'zolik", cost: 500 },
+  { id: "book1", emoji: "📗", name: "Yangi kitob: \"Yulduzlar sayohati\"", cost: 100, type: "book" },
+  { id: "book2", emoji: "📘", name: "Yangi kitob: \"Vaqt mashinasi\"", cost: 150, type: "book" },
+  { id: "badge", emoji: "🏅", name: "Faxriy nishon (profilga)", cost: 80, type: "badge" },
+  { id: "premium", emoji: "⭐", name: "1 haftalik Premium a'zolik", cost: 500, type: "premium" },
 ];
+
+async function refreshOwnedItems() {
+  try {
+    const data = await apiGet("/api/my_items");
+    state.ownedItems = data.items || [];
+  } catch (e) {
+    console.error("Xaridlarni yuklashda xato:", e);
+    state.ownedItems = state.ownedItems || [];
+  }
+}
+
+function isOwned(itemId) {
+  return (state.ownedItems || []).some(i => i.item_id === itemId);
+}
 
 function renderShop() {
   const list = document.getElementById("shopList");
   list.innerHTML = "";
   SHOP_ITEMS.forEach(item => {
+    const owned = isOwned(item.id);
     const canAfford = state.coins >= item.cost;
     const el = document.createElement("div");
     el.className = "shop-item";
+
+    let buttonHtml;
+    if (owned) {
+      buttonHtml = `<div class="owned-tag">✅ Olingan</div>`;
+    } else {
+      buttonHtml = `<button class="buy-btn" ${canAfford ? "" : "disabled"} data-id="${item.id}">
+        ${canAfford ? "Sotib olish" : "Yetarli emas"}
+      </button>`;
+    }
+
     el.innerHTML = `
       <div class="shop-emoji">${item.emoji}</div>
       <div class="shop-info">
         <div class="shop-name">${item.name}</div>
         <div class="shop-cost">${item.cost} 🪙</div>
       </div>
-      <button class="buy-btn" ${canAfford ? "" : "disabled"} data-id="${item.id}" data-cost="${item.cost}">
-        ${canAfford ? "Sotib olish" : "Yetarli emas"}
-      </button>
+      ${buttonHtml}
     `;
     list.appendChild(el);
   });
 
   list.querySelectorAll(".buy-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const cost = parseInt(btn.dataset.cost);
       const itemId = btn.dataset.id;
+      const item = SHOP_ITEMS.find(i => i.id === itemId);
       btn.disabled = true;
       btn.textContent = "...";
       try {
-        const result = await apiPost("/api/purchase", { cost, item: itemId });
+        const result = await apiPost("/api/purchase", { item: itemId });
         if (result.success) {
           state.coins = result.coins;
+          await refreshOwnedItems(); // serverdan yangilangan xaridlar ro'yxatini olamiz
           updateBalanceDisplay();
           tg.HapticFeedback.notificationOccurred("success");
-          tg.showAlert("✅ Xarid muvaffaqiyatli amalga oshirildi!");
+          if (item.type === "book") {
+            tg.showAlert(`✅ "${item.name}" muvaffaqiyatli sotib olindi! Uni "Sahifam → Mening kitoblarim" bo'limidan topasiz.`);
+          } else {
+            tg.showAlert("✅ Xarid muvaffaqiyatli amalga oshirildi!");
+          }
+        } else if (result.error === "already_owned") {
+          tg.showAlert("Siz bu mahsulotni allaqachon sotib olgansiz.");
         } else {
           tg.showAlert("❌ Koin yetarli emas.");
         }
@@ -791,12 +943,80 @@ function renderShop() {
   });
 }
 
-// ================== SAHIFAM TAB ==================
+// ================== SAHIFAM TAB — navigatsiya ==================
+
+const profileViews = ["profileMainView", "myBooksView", "settingsView", "helpView"];
+
+function showProfileView(viewId) {
+  profileViews.forEach(v => {
+    document.getElementById(v).style.display = (v === viewId) ? "block" : "none";
+  });
+  if (viewId === "myBooksView") renderMyBooks();
+}
 
 document.querySelectorAll(".menu-item").forEach(item => {
   item.addEventListener("click", () => {
     tg.HapticFeedback.impactOccurred("light");
-    tg.showAlert(item.dataset.msg || "Tez orada!");
+    const section = item.dataset.section;
+    if (section === "myBooks") showProfileView("myBooksView");
+    else if (section === "settings") showProfileView("settingsView");
+    else if (section === "help") showProfileView("helpView");
+    else tg.showAlert(item.dataset.msg || "Tez orada!");
+  });
+});
+
+document.getElementById("myBooksBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+document.getElementById("settingsBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+document.getElementById("helpBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+
+function renderMyBooks() {
+  const owned = (state.ownedItems || []).filter(i => i.type === "book");
+  const list = document.getElementById("myBooksList");
+
+  if (owned.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">📚</div>
+        <div>Hali kitob sotib olmadingiz.<br>Do'kon bo'limidan kitob xarid qiling!</div>
+      </div>`;
+    return;
+  }
+  list.innerHTML = owned.map(b => `
+    <div class="owned-book-item">
+      <div class="emoji">${b.emoji}</div>
+      <div>
+        <div class="name">${b.name}</div>
+        <div class="date">Sotib olindi: ${b.date}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+// ================== SOZLAMALAR — toggle'lar ==================
+
+function setupToggle(id, storageKey, defaultOn) {
+  const el = document.getElementById(id);
+  const saved = localStorage.getItem(storageKey);
+  const isOn = saved === null ? defaultOn : saved === "true";
+  el.classList.toggle("on", isOn);
+  el.addEventListener("click", () => {
+    const nowOn = !el.classList.contains("on");
+    el.classList.toggle("on", nowOn);
+    localStorage.setItem(storageKey, nowOn);
+    tg.HapticFeedback.impactOccurred("light");
+  });
+}
+setupToggle("notifToggle", "pref_notifications", true);
+setupToggle("soundToggle", "pref_sounds", true);
+
+document.getElementById("resetProgressBtn").addEventListener("click", () => {
+  tg.showConfirm("Ushbu qurilmadagi barcha mahalliy ma'lumotlar (sotib olingan kitoblar ro'yxati, sozlamalar) o'chiriladi. Davom etilsinmi?", (confirmed) => {
+    if (confirmed) {
+      localStorage.clear();
+      tg.showAlert("Mahalliy ma'lumotlar tozalandi.");
+      renderShop();
+      renderMyBooks();
+    }
   });
 });
 
@@ -908,7 +1128,7 @@ function startQuizTimer() {
     document.getElementById("quizTimer").textContent = `⏱ ${quizState.timeLeft}s`;
     if (quizState.timeLeft <= 0) {
       clearInterval(quizState.timerInterval);
-      selectQuizAnswer(-1); // vaqt tugadi, javob berilmadi
+      selectQuizAnswer(-1);
     }
   }, 1000);
 }
@@ -975,9 +1195,11 @@ document.getElementById("quizBackBtn").addEventListener("click", () => {
 
 async function init() {
   await loadUserData();
+  await refreshOwnedItems();
   renderPage();
   renderShop();
   renderQuizList();
+  renderMyBooks();
 }
 
 init();
