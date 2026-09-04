@@ -48,19 +48,44 @@ WEBAPP_URL = "https://web-production-aa006.up.railway.app"
 
 PORT = int(os.environ.get("PORT", 8080))
 
+# ---------- Sahifa o'qish mukofoti ----------
 COINS_PER_PAGE = 10
-REFERRAL_BONUS = 150
+COINS_PER_PAGE_PREMIUM = 20          # Premium: 2 baravar
 
-# Tanlov (Quiz) uchun sozlamalar
+# ---------- Sahifa taymeri (sekund) — frontend shu qiymatni /api/me dan olib ishlatishi kerak ----------
+PAGE_TIMER_SECONDS = 30
+PAGE_TIMER_SECONDS_PREMIUM = 15
+
+# ---------- Referral bonusi ----------
+REFERRAL_BONUS = 300                 # avvalgi 150 o'rniga
+
+# ---------- Tanlov (Quiz) uchun sozlamalar ----------
 QUIZ_REWARD_PER_CORRECT = 15
+QUIZ_REWARD_PER_CORRECT_PREMIUM = 22  # +50%
 MAX_QUIZ_QUESTIONS = 30  # bitta tanlovda bo'lishi mumkin bo'lgan maksimal savol soni (himoya uchun)
 
+# ---------- Do'kon chegirmasi ----------
+SHOP_DISCOUNT_PREMIUM = 0.20         # 20%
+
+# ---------- Kunlik bonus (faqat Premium) ----------
+DAILY_BONUS_PREMIUM = 50
+
+# ---------- Premium muddati ----------
+PREMIUM_DURATION_DAYS = 7
+
 # Do'kon mahsulotlari — narx va turi FAQAT serverda aniqlanadi (mijoz o'zgartira olmasligi uchun)
+# premium_only=True bo'lgan mahsulotni faqat hozir Premium bo'lgan foydalanuvchi sotib ola oladi.
 SHOP_ITEMS = {
-    "book1": {"name": "Yangi kitob: \"Yulduzlar sayohati\"", "emoji": "📗", "cost": 100, "type": "book"},
-    "book2": {"name": "Yangi kitob: \"Vaqt mashinasi\"", "emoji": "📘", "cost": 150, "type": "book"},
-    "badge": {"name": "Faxriy nishon (profilga)", "emoji": "🏅", "cost": 80, "type": "badge"},
-    "premium": {"name": "1 haftalik Premium a'zolik", "emoji": "⭐", "cost": 500, "type": "premium"},
+    "book1": {"name": "Yangi kitob: \"Yulduzlar sayohati\"", "emoji": "📗", "cost": 100, "type": "book", "premium_only": False},
+    "book2": {"name": "Yangi kitob: \"Vaqt mashinasi\"", "emoji": "📘", "cost": 150, "type": "book", "premium_only": False},
+    "badge": {"name": "Faxriy nishon (profilga)", "emoji": "🏅", "cost": 80, "type": "badge", "premium_only": False},
+    "premium": {"name": "1 haftalik Premium a'zolik", "emoji": "⭐", "cost": 500, "type": "premium", "premium_only": False},
+
+    # --- Yangi 3 ta kitob ---
+    # Nomlarni va narxlarni o'zingizga moslab o'zgartiring. Matn (asl kontent) index.html'da bo'ladi.
+    "book3": {"name": "Yangi kitob: \"<<< kitob nomi 1 >>>\"", "emoji": "📙", "cost": 150, "type": "book", "premium_only": False},
+    "book4": {"name": "Yangi kitob: \"<<< kitob nomi 2 >>>\"", "emoji": "📕", "cost": 150, "type": "book", "premium_only": False},
+    "book5": {"name": "Yangi kitob: \"<<< kitob nomi 3 >>>\"", "emoji": "🌟", "cost": 200, "type": "book", "premium_only": True},
 }
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -196,7 +221,9 @@ async def cmd_admin(message: Message):
         f"💰 Koin qo'shish uchun buyruqlar:\n"
         f"<code>/addcoins 500</code> — o'zingizga 500 koin qo'shish\n"
         f"<code>/addcoins 123456789 500</code> — boshqa foydalanuvchiga koin qo'shish\n"
-        f"(manfiy son yozsangiz — koin ayiradi, masalan <code>/addcoins -50</code>)",
+        f"(manfiy son yozsangiz — koin ayiradi, masalan <code>/addcoins -50</code>)\n\n"
+        f"⭐ Premium qo'lda berish uchun:\n"
+        f"<code>/addpremium 123456789</code> — 7 kunlik Premium beradi",
         reply_markup=keyboard,
     )
 
@@ -241,6 +268,41 @@ async def cmd_addcoins(message: Message):
             pass
 
 
+@dp.message(Command("addpremium"))
+async def cmd_addpremium(message: Message):
+    """Admin qo'lda foydalanuvchiga Premium berishi uchun (masalan sovrin sifatida)."""
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ Bu buyruq faqat administratorlar uchun.")
+        return
+
+    parts = message.text.split()
+    try:
+        target_id = int(parts[1]) if len(parts) >= 2 else message.from_user.id
+        days = int(parts[2]) if len(parts) >= 3 else PREMIUM_DURATION_DAYS
+    except ValueError:
+        await message.answer(
+            "❗ Foydalanish:\n"
+            "<code>/addpremium 123456789</code> — 7 kunlik Premium beradi\n"
+            "<code>/addpremium 123456789 14</code> — 14 kunlik Premium beradi"
+        )
+        return
+
+    expires = await db.activate_premium(target_id, days=days)
+    await message.answer(
+        f"✅ <code>{target_id}</code> foydalanuvchiga {days} kunlik Premium berildi.\n"
+        f"Tugash sanasi: {expires.strftime('%Y-%m-%d %H:%M')}"
+    )
+    if target_id != message.from_user.id:
+        try:
+            await bot.send_message(
+                target_id,
+                f"🌟 Sizga {days} kunlik Premium a'zolik berildi!\n"
+                f"Amal qilish muddati: {expires.strftime('%Y-%m-%d')} gacha."
+            )
+        except Exception:
+            pass
+
+
 @dp.callback_query(F.data == "admin_randomizer")
 async def callback_randomizer(callback: CallbackQuery):
     if not is_admin(callback.from_user.id):
@@ -270,10 +332,12 @@ async def callback_admin_stats(callback: CallbackQuery):
         return
     users = await db.get_all_users()
     total_coins = sum(u["coins"] for u in users)
+    premium_count = sum(1 for u in users if u["is_premium"])
     await callback.message.answer(
         f"📊 <b>Statistika</b>\n\n"
         f"👥 Foydalanuvchilar: {len(users)}\n"
-        f"💰 Jami koinlar: {total_coins}"
+        f"💰 Jami koinlar: {total_coins}\n"
+        f"⭐ Premium foydalanuvchilar: {premium_count}"
     )
     await callback.answer()
 
@@ -326,6 +390,11 @@ async def api_me(request: web.Request):
     await db.create_user_if_missing(user_id, username)
 
     streak = await db.update_streak(user_id)
+    is_premium = await db.check_premium_status(user_id)
+
+    # Kunlik bonus - faqat Premium, kuniga 1 marta (ilova ochilganda avtomatik tekshiriladi)
+    daily_bonus_earned = await db.try_grant_daily_bonus(user_id, DAILY_BONUS_PREMIUM)
+
     user = await db.get_user(user_id)
     books_count = await db.count_purchases_by_type(user_id, "book")
     badges_count = await db.count_purchases_by_type(user_id, "badge")
@@ -339,6 +408,11 @@ async def api_me(request: web.Request):
         "user_id": user_id,
         "coins": user["coins"],
         "referral_link": referral_link,
+        "is_premium": is_premium,
+        "premium_expires_at": user["premium_expires_at"].strftime("%Y-%m-%d %H:%M") if user["premium_expires_at"] else None,
+        "page_timer_seconds": PAGE_TIMER_SECONDS_PREMIUM if is_premium else PAGE_TIMER_SECONDS,
+        "coins_per_page": COINS_PER_PAGE_PREMIUM if is_premium else COINS_PER_PAGE,
+        "daily_bonus_earned": daily_bonus_earned,  # >0 bo'lsa, frontend "🎁 +50 koin!" deb ko'rsatishi mumkin
         "stats": {
             "books": books_count,
             "hours": hours_read,
@@ -354,13 +428,55 @@ async def api_earn(request: web.Request):
     if not user_id:
         return web.json_response({"error": "unauthorized"}, status=401)
 
+    is_premium = await db.check_premium_status(user_id)
+    max_allowed = COINS_PER_PAGE_PREMIUM if is_premium else COINS_PER_PAGE
+
     amount = int(body.get("amount", 0))
-    if amount <= 0 or amount > COINS_PER_PAGE:
+    if amount <= 0 or amount > max_allowed:
         return web.json_response({"error": "invalid_amount"}, status=400)
+
+    # ESLATMA (Premium-only kitob uchun): agar index.html /api/earn ga "book_id" yuborsa,
+    # shu yerda SHOP_ITEMS[book_id]["premium_only"] ni tekshirib, premium bo'lmagan
+    # foydalanuvchiga rad javobini qaytarish mumkin. Hozircha bu parametr yuborilmayapti,
+    # shuning uchun bu tekshiruv o'chirilgan holda turibdi:
+    #
+    # book_id = body.get("book_id")
+    # if book_id and SHOP_ITEMS.get(book_id, {}).get("premium_only") and not is_premium:
+    #     return web.json_response({"error": "premium_required"}, status=403)
 
     new_balance = await db.add_coins(user_id, amount)
     await db.increment_pages_read(user_id)
-    return web.json_response({"success": True, "coins": new_balance})
+    return web.json_response({"success": True, "coins": new_balance, "is_premium": is_premium})
+
+
+async def api_shop_items(request: web.Request):
+    """Do'kon ro'yxatini REAL (chegirma qo'llangan) narxlar bilan qaytaradi."""
+    init_data = request.query.get("initData", "")
+    user_data = validate_init_data(init_data)
+    if not user_data:
+        return web.json_response({"error": "unauthorized"}, status=401)
+
+    user_id = user_data["id"]
+    is_premium = await db.check_premium_status(user_id)
+
+    items = []
+    for item_id, item in SHOP_ITEMS.items():
+        base_cost = item["cost"]
+        cost = round(base_cost * (1 - SHOP_DISCOUNT_PREMIUM)) if is_premium else base_cost
+        items.append({
+            "item_id": item_id,
+            "name": item["name"],
+            "emoji": item["emoji"],
+            "type": item["type"],
+            "cost": cost,
+            "base_cost": base_cost,
+            "discounted": is_premium,
+            "premium_only": item.get("premium_only", False),
+            "locked": item.get("premium_only", False) and not is_premium,
+            "owned": await db.is_item_owned(user_id, item_id) if item["type"] != "premium" else False,
+        })
+
+    return web.json_response({"items": items, "is_premium": is_premium})
 
 
 async def api_purchase(request: web.Request):
@@ -374,18 +490,36 @@ async def api_purchase(request: web.Request):
     if not item:
         return web.json_response({"error": "invalid_item"}, status=400)
 
-    already_owned = await db.is_item_owned(user_id, item_id)
-    if already_owned:
-        return web.json_response({"error": "already_owned"}, status=400)
+    is_premium = await db.check_premium_status(user_id)
 
-    cost = item["cost"]
+    if item.get("premium_only") and not is_premium:
+        return web.json_response({"error": "premium_required"}, status=403)
+
+    # "premium" turidagi mahsulot qayta-qayta sotib olinishi mumkin (yangilash/cho'zish uchun),
+    # boshqa mahsulotlar (kitob, nishon) esa faqat bir marta.
+    if item["type"] != "premium":
+        already_owned = await db.is_item_owned(user_id, item_id)
+        if already_owned:
+            return web.json_response({"error": "already_owned"}, status=400)
+
+    base_cost = item["cost"]
+    cost = round(base_cost * (1 - SHOP_DISCOUNT_PREMIUM)) if is_premium else base_cost
+
     user = await db.get_user(user_id)
     if not user or user["coins"] < cost:
         return web.json_response({"error": "insufficient_funds"}, status=400)
 
     new_balance = await db.add_coins(user_id, -cost)
     await db.add_purchase(user_id, item_id, item["name"], item["emoji"], item["type"])
-    return web.json_response({"success": True, "coins": new_balance})
+
+    result = {"success": True, "coins": new_balance, "cost_paid": cost}
+
+    if item["type"] == "premium":
+        expires = await db.activate_premium(user_id, days=PREMIUM_DURATION_DAYS)
+        result["is_premium"] = True
+        result["premium_expires_at"] = expires.strftime("%Y-%m-%d %H:%M")
+
+    return web.json_response(result)
 
 
 async def api_my_items(request: web.Request):
@@ -416,13 +550,16 @@ async def api_quiz_complete(request: web.Request):
     if not user_id:
         return web.json_response({"error": "unauthorized"}, status=401)
 
+    is_premium = await db.check_premium_status(user_id)
+    reward_per_correct = QUIZ_REWARD_PER_CORRECT_PREMIUM if is_premium else QUIZ_REWARD_PER_CORRECT
+
     correct = int(body.get("correct", 0))
     # Himoya: mijozdan kelgan qiymatni cheklaymiz
     correct = max(0, min(correct, MAX_QUIZ_QUESTIONS))
-    earned = correct * QUIZ_REWARD_PER_CORRECT
+    earned = correct * reward_per_correct
 
     new_balance = await db.add_coins(user_id, earned)
-    return web.json_response({"success": True, "coins": new_balance, "earned": earned})
+    return web.json_response({"success": True, "coins": new_balance, "earned": earned, "is_premium": is_premium})
 
 
 async def index_page(request: web.Request):
@@ -434,6 +571,7 @@ def create_app() -> web.Application:
     app.router.add_get("/", index_page)
     app.router.add_get("/api/me", api_me)
     app.router.add_post("/api/earn", api_earn)
+    app.router.add_get("/api/shop_items", api_shop_items)
     app.router.add_post("/api/purchase", api_purchase)
     app.router.add_get("/api/my_items", api_my_items)
     app.router.add_post("/api/quiz_complete", api_quiz_complete)
@@ -464,3 +602,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
