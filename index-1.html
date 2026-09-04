@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kitob Ovi</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #F5F4FF;
+    --card: #FFFFFF;
+    --card-2: #F0EEFB;
+    --accent: #4F46E5;
+    --accent-light: #6366F1;
+    --accent-2: #F59E0B;
+    --text: #1E1B2E;
+    --text-dim: #6B7280;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --border: #E5E1F5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding-bottom: 80px;
+    min-height: 100vh;
+  }
+  .header {
+    padding: 20px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .balance-pill {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  }
+  .container {
+    padding: 0 16px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
+  }
+  .tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 9.5px;
+    padding: 8px 1px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    background: rgba(79, 70, 229, 0.1);
+  }
+  .tab-btn .icon { font-size: 17px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Kitob bo'limi */
+  .book-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .book-author {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .page-indicator {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .page-text {
+    line-height: 1.7;
+    font-size: 15px;
+    color: #33303f;
+    min-height: 180px;
+  }
+  .timer-box {
+    margin-top: 20px;
+    text-align: center;
+  }
+  .timer-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 4px solid var(--border);
+    border-top-color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-weight: 700;
+    font-size: 18px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+  }
+  .btn-amber {
+    background: linear-gradient(135deg, var(--accent-2), #d97706);
+    color: white;
+  }
+  .btn-disabled {
+    background: var(--card-2);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+  .coin-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--success);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 14px;
+    z-index: 200;
+    transition: transform 0.35s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    text-align: center;
+    max-width: 88%;
+  }
+  .coin-toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Do'stlar bo'limi */
+  .big-balance {
+    text-align: center;
+    padding: 24px 0;
+  }
+  .big-balance .num {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .big-balance .label {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .ref-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .ref-link {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .info-text {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 14px;
+  }
+
+  /* Referral progress bar */
+  .ref-progress-wrap {
+    margin-top: 16px;
+  }
+  .ref-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .ref-progress-bar {
+    height: 10px;
+    background: var(--card-2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ref-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.4s ease;
+  }
+  .ref-progress-msg {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: #b45309;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Reyting (leaderboard) */
+  .lb-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .lb-tab-btn {
+    flex: 1;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .lb-tab-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border-color: transparent;
+  }
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank {
+    width: 24px;
+    text-align: center;
+    font-weight: 800;
+    color: var(--accent);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .lb-rank.top1 { color: #d97706; }
+  .lb-name {
+    flex: 1;
+    font-weight: 700;
+    font-size: 13.5px;
+  }
+  .lb-value {
+    font-weight: 800;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+
+  /* Do'kon bo'limi */
+  .shop-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--card-2);
+    border-radius: 14px;
+    margin-bottom: 10px;
+  }
+  .shop-emoji { font-size: 30px; }
+  .shop-info { flex: 1; }
+  .shop-name { font-weight: 700; font-size: 14px; }
+  .shop-cost { color: #b45309; font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .buy-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .buy-btn:disabled {
+    background: #E5E1F5;
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+  .owned-tag {
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .locked-tag {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .discount-badge {
+    display: inline-block;
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .old-price {
+    text-decoration: line-through;
+    color: var(--text-dim);
+    margin-right: 6px;
+    font-weight: 500;
+  }
+  .premium-only-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent-2), #d97706);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ===== SAHIFAM (Profil) ===== */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 2px 20px;
+  }
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+  }
+  .profile-name { font-size: 17px; font-weight: 700; }
+  .profile-username { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .stat-box .num { font-size: 18px; font-weight: 800; color: var(--accent); }
+  .stat-box .label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .premium-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .premium-banner .emoji { font-size: 26px; }
+  .premium-banner .title { font-weight: 700; font-size: 14px; }
+  .premium-banner .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  .premium-tag {
+    margin-left: auto;
+    background: var(--card-2);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .menu-list { padding: 0; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item .emoji { font-size: 20px; width: 24px; text-align: center; }
+  .menu-item .title { font-weight: 700; font-size: 14px; }
+  .menu-item .sub { color: var(--text-dim); font-size: 11px; margin-top: 1px; }
+  .menu-item .arrow { margin-left: auto; color: var(--text-dim); }
+
+  /* ===== TANLOV (Quiz) ===== */
+  .quiz-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
+  }
+  .quiz-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .quiz-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .quiz-meta span { display: flex; align-items: center; gap: 4px; }
+  .quiz-start-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border: none;
+    padding: 11px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .quiz-progress-bar {
+    height: 6px;
+    background: var(--card-2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .quiz-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.3s ease;
+  }
+  .quiz-question-num { color: var(--text-dim); font-size: 12px; margin-bottom: 6px; }
+  .quiz-question-text { font-size: 17px; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
+  .quiz-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .quiz-option.correct { background: rgba(22, 163, 74, 0.14); border-color: var(--success); color: var(--success); }
+  .quiz-option.wrong { background: rgba(220, 38, 38, 0.12); border-color: var(--danger); color: var(--danger); }
+  .quiz-timer { text-align: center; color: #b45309; font-weight: 700; font-size: 13px; margin-bottom: 14px; }
+  .quiz-result { text-align: center; padding: 20px 0; }
+  .quiz-result .emoji { font-size: 48px; margin-bottom: 10px; }
+  .quiz-result .score { font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+  .quiz-result .reward { color: #b45309; font-weight: 700; font-size: 15px; margin-bottom: 20px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .empty-state .emoji { font-size: 36px; margin-bottom: 10px; }
+  .owned-book-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card-2);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .owned-book-item .emoji { font-size: 26px; }
+  .owned-book-item .name { font-weight: 700; font-size: 14px; }
+  .owned-book-item .date { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+  .owned-book-item { cursor: pointer; transition: transform 0.1s; }
+  .owned-book-item:active { transform: scale(0.98); }
+  .owned-book-item .arrow { margin-left: auto; color: var(--text-dim); font-size: 18px; }
+
+  .book-switcher {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .book-switcher::-webkit-scrollbar { display: none; }
+  .book-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .book-chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border-color: transparent;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-row .title { font-weight: 700; font-size: 14px; }
+  .toggle-switch {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on::after { transform: translateX(18px); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏹 Kitob Ovi</h1>
+  <div class="balance-pill">🪙 <span id="headerBalance">0</span></div>
+</div>
+
+<div class="container">
+
+  <!-- ===== KITOBLAR TAB ===== -->
+  <div class="tab-content active" id="tab-books">
+    <div class="book-switcher" id="bookSwitcher"></div>
+    <div class="card">
+      <div class="book-title" id="bookTitle">Sahroning siri</div>
+      <div class="book-author" id="bookAuthor">Bir bo'lakli qissa</div>
+      <div class="page-indicator">Sahifa <span id="pageNum">1</span> / <span id="pageTotal">5</span></div>
+      <div class="page-text" id="pageText"></div>
+
+      <div class="timer-box" id="timerBox">
+        <div class="timer-circle" id="timerCircle">30</div>
+        <div style="color: var(--text-dim); font-size: 13px;">O'qib bo'lguningizcha kuting...</div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button class="btn btn-primary" id="nextPageBtn" style="display:none;">Keyingi sahifa (+10 🪙)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TANLOV TAB ===== -->
+  <div class="tab-content" id="tab-quiz">
+    <div id="quizListView">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:22px; font-weight:800; margin-bottom:4px;">Tanlov 🏆</div>
+        <div style="color:var(--text-dim); font-size:13px;">Bilimingizni sinang, testdan o'tib koin yutib oling!</div>
+      </div>
+      <div id="quizList"></div>
+    </div>
+
+    <div id="quizPlayView" style="display:none;">
+      <div class="card">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%;"></div></div>
+        <div class="quiz-question-num" id="quizQuestionNum">Savol 1 / 5</div>
+        <div class="quiz-timer" id="quizTimer">⏱ 40s</div>
+        <div class="quiz-question-text" id="quizQuestionText"></div>
+        <div id="quizOptions"></div>
+      </div>
+    </div>
+
+    <div id="quizResultView" style="display:none;">
+      <div class="card quiz-result">
+        <div class="emoji">🎉</div>
+        <div class="score" id="quizScoreText">0 / 5 to'g'ri</div>
+        <div class="reward" id="quizRewardText">+0 🪙 yutib oldingiz</div>
+        <button class="btn btn-primary" id="quizBackBtn">Testlarga qaytish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DO'STLAR TAB ===== -->
+  <div class="tab-content" id="tab-friends">
+    <div class="card">
+      <div class="big-balance">
+        <div class="num" id="friendsBalance">0</div>
+        <div class="label">Jami to'plangan koin</div>
+      </div>
+      <div class="ref-box">
+        <div class="ref-link" id="refLink">yuklanmoqda...</div>
+        <button class="copy-btn" id="copyRefBtn">Nusxalash</button>
+      </div>
+
+      <div class="ref-progress-wrap">
+        <div class="ref-progress-label">
+          <span>👥 Taklif qilingan do'stlar: <b id="refCountText">0</b></span>
+          <span id="refMilestoneText">/ 5</span>
+        </div>
+        <div class="ref-progress-bar"><div class="ref-progress-fill" id="refProgressFill" style="width:0%;"></div></div>
+        <div class="ref-progress-msg" id="refProgressMsg"></div>
+      </div>
+
+      <div class="info-text">
+        👥 Do'stingizni shu havola orqali taklif qiling. U kanallarga a'zo bo'lib, ilovani ochsa —
+        sizga <b>+300 koin</b> avtomatik qo'shiladi!
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REYTING TAB ===== -->
+  <div class="tab-content" id="tab-leaderboard">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:22px; font-weight:800; margin-bottom:4px;">Reyting 📊</div>
+      <div style="color:var(--text-dim); font-size:13px;">Eng ko'p koin va do'st taklif qilganlar shu yerda!</div>
+    </div>
+    <div class="card">
+      <div class="lb-tabs">
+        <button class="lb-tab-btn active" data-lb="coins">💰 Koin bo'yicha</button>
+        <button class="lb-tab-btn" data-lb="referrals">👥 Taklif bo'yicha</button>
+      </div>
+      <div id="lbList"></div>
+    </div>
+  </div>
+
+  <!-- ===== DO'KON TAB ===== -->
+  <div class="tab-content" id="tab-shop">
+    <div class="card" id="shopPremiumNote" style="display:none;">
+      <div class="info-text" style="margin-top:0; color: var(--success); font-weight:700;">
+        🌟 Premium faol — barcha narxlarga 20% chegirma qo'llanildi!
+      </div>
+    </div>
+    <div class="card">
+      <div id="shopList"></div>
+    </div>
+  </div>
+
+  <!-- ===== SAHIFAM TAB ===== -->
+  <div class="tab-content" id="tab-profile">
+    <div id="profileMainView">
+      <div class="profile-header">
+        <div class="avatar" id="profileAvatar">?</div>
+        <div>
+          <div class="profile-name" id="profileName">Foydalanuvchi</div>
+          <div class="profile-username" id="profileUsername">Balans: <span id="profileBalance">0</span> 🪙</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="num" id="statBooks">0</div><div class="label">Kitoblar</div></div>
+        <div class="stat-box"><div class="num" id="statHours">0</div><div class="label">Soat</div></div>
+        <div class="stat-box"><div class="num" id="statStreak">0</div><div class="label">Kun seriya</div></div>
+        <div class="stat-box"><div class="num" id="statBadges">0</div><div class="label">Nishonlar</div></div>
+      </div>
+
+      <div class="card premium-banner" id="premiumBanner">
+        <div class="emoji" id="premiumEmoji">⭐</div>
+        <div>
+          <div class="title" id="premiumTitle">Premium yoqilmagan</div>
+          <div class="sub" id="premiumSub">Shartlar va premium olish — bosing</div>
+        </div>
+        <div class="premium-tag" id="premiumTag">Yo'q</div>
+      </div>
+
+      <div class="card menu-list">
+        <div class="menu-item" data-section="myBooks">
+          <div class="emoji">📖</div>
+          <div><div class="title">Mening kitoblarim</div><div class="sub">O'qigan va sotib olgan kitoblarim</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-msg="Sevimli kitoblar bo'limi tez orada! Kitoblar katalogi qo'shilgach ishga tushadi.">
+          <div class="emoji">❤️</div>
+          <div><div class="title">Sevimli kitoblarim</div><div class="sub">Yoqtirgan kitoblaringiz</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-msg="Sharhlar bo'limi tez orada!">
+          <div class="emoji">✍️</div>
+          <div><div class="title">Mening sharhlarim</div><div class="sub">Qoldirgan sharh va izohlaringiz</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-section="settings">
+          <div class="emoji">⚙️</div>
+          <div><div class="title">Sozlamalar</div><div class="sub">Hisob va ilova sozlamalari</div></div>
+          <div class="arrow">›</div>
+        </div>
+        <div class="menu-item" data-section="help">
+          <div class="emoji">🎧</div>
+          <div><div class="title">Yordam va qo'llab-quvvatlash</div><div class="sub">Savollar va takliflar</div></div>
+          <div class="arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mening kitoblarim -->
+    <div id="myBooksView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="myBooksBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Mening kitoblarim</div>
+      </div>
+      <div class="card" id="myBooksList"></div>
+    </div>
+
+    <!-- Sozlamalar -->
+    <div id="settingsView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="settingsBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Sozlamalar</div>
+      </div>
+      <div class="card">
+        <div class="toggle-row">
+          <div class="title">🔔 Bildirishnomalar</div>
+          <div class="toggle-switch on" id="notifToggle"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="title">📳 Ovoz effektlari</div>
+          <div class="toggle-switch on" id="soundToggle"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="title">🌐 Til</div>
+          <div style="color:var(--text-dim); font-size:13px; font-weight:700;">O'zbekcha</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="color:var(--text-dim); font-size:12px; margin-bottom:10px;">Ilova versiyasi: 1.3</div>
+        <button class="btn btn-disabled" id="resetProgressBtn">🗑 Mahalliy ma'lumotlarni tozalash</button>
+      </div>
+    </div>
+
+    <!-- Yordam -->
+    <div id="helpView" style="display:none;">
+      <div class="card" style="display:flex; align-items:center; gap:10px;">
+        <button class="copy-btn" id="helpBackBtn" style="background:var(--card-2); color:var(--text);">← Orqaga</button>
+        <div style="font-weight:800; font-size:16px;">Yordam</div>
+      </div>
+      <div class="card">
+        <div class="info-text" style="margin-top:0;">
+          ❓ Savolingiz bormi yoki muammoga duch keldingizmi?<br><br>
+          Admin bilan bog'lanish uchun botga to'g'ridan-to'g'ri xabar yozing, biz tez orada javob beramiz.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="books">
+    <span class="icon">📚</span>
+    <span>Kitoblar</span>
+  </button>
+  <button class="tab-btn" data-tab="quiz">
+    <span class="icon">🏆</span>
+    <span>Tanlov</span>
+  </button>
+  <button class="tab-btn" data-tab="leaderboard">
+    <span class="icon">📊</span>
+    <span>Reyting</span>
+  </button>
+  <button class="tab-btn" data-tab="friends">
+    <span class="icon">👥</span>
+    <span>Do'stlar</span>
+  </button>
+  <button class="tab-btn" data-tab="shop">
+    <span class="icon">🎁</span>
+    <span>Do'kon</span>
+  </button>
+  <button class="tab-btn" data-tab="profile">
+    <span class="icon">👤</span>
+    <span>Sahifam</span>
+  </button>
+</div>
+
+<div class="coin-toast" id="coinToast">+10 🪙 qo'shildi!</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+// ================== HOLAT ==================
+let state = {
+  coins: 0,
+  currentBookId: "free",
+  currentPage: 0,
+  timerInterval: null,
+  timeLeft: 30,
+  // Premium bilan bog'liq — /api/me dan yuklanadi, hardcode QILINMAYDI
+  pageTimerSeconds: 30,
+  coinsPerPage: 10,
+  isPremium: false,
+  premiumExpiresAt: null,
+  ownedItems: [],
+  referralCount: 0,
+  referralNextMilestone: 5,
+  referralMilestoneStep: 5,
+};
+
+// Har bir kitob uchun: sarlavha, muallif/janr yorlig'i, emoji va sahifalar.
+// "free" — ilovadagi asosiy bepul kitob (do'kondan sotib olinmaydi).
+// book1-book5 — do'kondan sotib olinadigan kitoblar (barchasi ilova uchun yozilgan asl matnlar).
+const BOOKS = {
+  free: {
+    title: "Sahroning siri",
+    author: "Bir bo'lakli qissa",
+    emoji: "🏜️",
+    pages: [
+      "Sahroning qoq o'rtasida, quyosh tig'ida yolg'iz yurgan Sardor uzoqdan bir soyani ko'rdi. U charchagan, lekin umidini yo'qotmagan edi. Har bir qadam unga yangi kuch berayotgandek tuyulardi...",
+      "Soya yaqinlashgan sari, u buni eski bir karvon yo'lovchisi ekanini angladi. Chol unga suv taklif qildi va sahroning sirlari haqida gapira boshladi — bu yerda har bir qumtepaning o'z tarixi bor edi...",
+      "\"Bu yo'lda yurganlarning barchasi bir narsani izlaydi\", dedi chol. \"Sen nimani izlayapsan, yigit?\" Sardor bir lahza jim qoldi, so'ng javob berdi: \"Men o'zimni izlayapman...\"",
+      "Kechqurun ular olov yoqib, yulduzlar ostida o'tirishdi. Chol unga qadimiy bir xazina haqida hikoya qildi — bu xazina oltin emas, balki har bir insonning ichida yashiringan kuch edi...",
+      "Ertalab Sardor uyg'onganida, chol yo'q edi. Faqat qumga chizilgan bir belgi qolgan edi. U buni tushundi: haqiqiy sayohat hali boshlanmagan, u hozirgina o'z ichki dunyosini kashf qila boshlagan edi."
+    ],
+  },
+  book1: {
+    title: "Yulduzlar sayohati",
+    author: "Ilmiy-fantastik hikoya",
+    emoji: "📗",
+    pages: [
+      "Elyor kichkina qishloqda yashardi, lekin uning nigohi doim osmonga tikilardi. U eski bir linza va bir nechta quvurdan o'zi teleskop yasagan edi — buni hech kim jiddiy qabul qilmasdi.",
+      "Bir kecha u teleskop orqali g'alati miltillovchi nuqtani ko'rdi. Bu oddiy yulduz emasdi — u sekin-asta harakatlanardi. Elyor daftariga uning yo'lini chiza boshladi, kechalab uyg'onib kuzatardi.",
+      "Oy oxirida u tushundi: bu kichik sun'iy yo'ldosh emas, balki uzoq-uzoqlardan kelayotgan ma'lumot signali edi. Elyor buni shahar observatoriyasidagi olimlarga yozib yubordi.",
+      "Javob kutilmaganda tez keldi: uning hisob-kitoblari to'g'ri chiqqan edi! Observatoriya uni maxsus dasturga taklif qildi — bu uning ilk qadami, katta olam sari ochilgan eshik edi.",
+      "Yillar o'tib, Elyor haqiqiy astronom bo'ldi. Lekin u hech qachon o'sha birinchi kechani, qishloq tomida yolg'iz turib osmonni kuzatgan lahzani unutmadi — hamma katta sayohat bitta savoldan boshlanadi."
+    ],
+  },
+  book2: {
+    title: "Vaqt mashinasi",
+    author: "Sarguzasht hikoya",
+    emoji: "📘",
+    pages: [
+      "Diyor mehanik edi, lekin uning haqiqiy ishtiyoqi boshqa narsada — u bolaligidan buyon \"vaqtni to'xtatib turish\" mumkinmi, degan savol bilan yashardi. Ustaxonasida g'alati bir soat yasay boshladi.",
+      "Uch yillik mashaqqatli ishdan so'ng, soat g'alati tarzda ishlay boshladi: uni burab qo'ysang, atrofdagi hamma narsa sekinlashardi — go'yo vaqt cho'zilgandek bo'lardi.",
+      "Diyor bu \"kichik vaqt mashinasi\"ni sinab ko'rdi: bir kunlik ishni bir necha soatga siqib bajardi. Lekin tez orada u charchoq va yolg'izlikni his qildi — atrofidagilar bilan vaqt o'tkazishga ulgurmayotgan edi.",
+      "U qarindoshlarini, do'stlarini sog'inib qoldi. Shunda tushundiki, asl \"vaqt mashinasi\" — tezlashtirish emas, balki har bir lahzani to'la anglab yashash ekan.",
+      "Diyor soatni tokchaga qo'yib qo'ydi va oilasi bilan choy ichishga chiqdi. U hali ham kashfiyotchi edi — lekin endi uning eng qimmatli kashfiyoti oddiy bir haqiqat bo'ldi: vaqtni to'xtatib bo'lmaydi, uni faqat qadrlash mumkin."
+    ],
+  },
+  book3: {
+    title: "Kumush tong",
+    author: "Ilova uchun yozilgan asl hikoya",
+    emoji: "📙",
+    pages: [
+      "Marg'ilonning tor ko'chalaridan birida, tong saharlab dastgoh g'ichirlay boshlardi. Gulnora ipak iplarni mohirlik bilan to'qir, lekin uning ko'zlari doim derazadan tashqariga, maktab tomon boqardi.",
+      "U kechalari, hamma uxlagach, amakisidan qolgan eski darsliklarni yorug'lik ostida o'qirdi. Gulnora o'qituvchi bo'lishni orzu qilardi — bolalarga harflarni tanishtirish, ularning ko'zlaridagi hayratni ko'rish uning eng katta orzusi edi.",
+      "Otasi esa boshqacha rejalar tuzgan edi: qo'shni mahalladan sovchilar kelmoqchi bo'lib, u qizini turmushga uzatishga qaror qilgandi. \"O'qish keyin ham bo'ladi\", derdi otasi, biroq Gulnora buning aksini his qilardi.",
+      "Onasi, jim va sabr bilan, qizining daftarlarini yashirincha saqlab qo'yardi. Bir kuni u Gulnorani mahalla oqsoqoliga — o'zi yoshligida o'qituvchi bo'lgan kishiga — olib bordi. Suhbat uzoq davom etdi.",
+      "Oqsoqol otasi bilan gaplashib, qizining iqtidori haqida gapirdi: \"Har bir qo'lning o'z hunari bor, lekin har bir ongning ham o'z yo'li bor.\" Ko'p o'tmay, Gulnora kechki maktabga qatnay boshladi — kumush tong unga yangi kunni va'da qilardi."
+    ],
+  },
+  book4: {
+    title: "Ikkilanish",
+    author: "Ilova uchun yozilgan asl hikoya",
+    emoji: "📕",
+    pages: [
+      "Anvar besh yildan so'ng o'z shahriga qaytdi. Chet elda tahsil olgan, ko'p narsani ko'rgan edi — va endi tug'ilgan tumanini o'zgacha ko'z bilan kuzatardi.",
+      "Mahalliy rahbarlar uni katta va'dalar bilan kutib olishdi: yangi yo'llar, ish o'rinlari, zamonaviy loyihalar. Anvar quloq solar, lekin so'zlar ortida qanchalik haqiqat borligiga shubha qilardi.",
+      "U bolalik do'sti Jasur bilan uchrashdi. Jasur unga: \"Bu yerda va'dalar ko'p, lekin ishlar kam. Sen nima qilmoqchisan — ishonasanmi yoki ketasanmi?\" — deb savol berdi.",
+      "Anvar tunlari uzoq o'ylanib chiqdi. Uning ichida ikki ovoz bahslashardi: biri — \"hamma joyda shunday, foyda yo'q\", ikkinchisi — \"agar hamma ketib qolsa, o'zgarish kim bilan bo'ladi?\"",
+      "Ertasi kuni Anvar hokimiyatga bordi — lekin ishonch bilan emas, savol bilan: \"Va'dalaringizni qog'ozga tushiring, men esa muddatlarni nazorat qilaman.\" Hikoya ochiq qoladi: ishonch qayta tug'iladimi yoki yo'qmi, buni faqat vaqt ko'rsatadi."
+    ],
+  },
+  book5: {
+    title: "Ikki dunyo oralig'ida",
+    author: "Ilova uchun yozilgan asl hikoya (Premium)",
+    emoji: "🌟",
+    pages: [
+      "Toshkentning eski mahallasida, baland binolar soyasida kichkina hovli bor edi. U yerda Robiya buvi kun bo'yi qatiq uyur, gilam to'qirdi — va nabirasi Madinaning universitetdan qaytishini kutardi.",
+      "Madina zamonaviy dizayn kompaniyasida ishlardi, kechalari esa telefonida chet el mijozlari bilan yozishardi. Buvisining \"kelin bo'lish, uy tebratish\" haqidagi gaplarini u sabr bilan, ammo ichida norozi bo'lib tinglardi.",
+      "Bir kuni Robiya buvi eski sandiqdan yoshligidagi rasmlarni chiqardi — u ham yoshligida rassomlik orzu qilgan, lekin davr sharoiti boshqacha bo'lgan ekan. Madina buvisini birinchi marta boshqacha ko'zda ko'rdi.",
+      "\"Sen orzuingdan voz kechding, men esa o'zimnikidan voz kechmoqchimasman\", dedi Madina yumshoq ohangda. Robiya jim qoldi, so'ng birinchi marta jilmayib: \"Balki men ham voz kechmasligim kerak edi\", dedi.",
+      "Ertasi kuni ular ikkoviga xos bir kelishuvga keldi: kechqurunlari birga choy ichib, Madina ish haqida, Robiya esa yoshligi haqida gapirib berardi. Ikki dunyo — kecha va kunduz kabi — bir tomda birlashishni o'rgandi."
+    ],
+  },
+};
+
+// ================== API FUNKSIYALARI ==================
+
+async function apiGet(path) {
+  const initData = tg.initData;
+  const res = await fetch(`${path}?initData=${encodeURIComponent(initData)}`);
+  return res.json();
+}
+
+async function apiPost(path, data) {
+  const initData = tg.initData;
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...data, initData }),
+  });
+  return res.json();
+}
+
+async function loadUserData() {
+  try {
+    const data = await apiGet("/api/me");
+    if (data.error) {
+      console.error("Auth xatosi:", data.error);
+      return;
+    }
+    state.coins = data.coins;
+    state.pageTimerSeconds = data.page_timer_seconds || 30;
+    state.coinsPerPage = data.coins_per_page || 10;
+    state.isPremium = !!data.is_premium;
+    state.premiumExpiresAt = data.premium_expires_at || null;
+    state.referralCount = data.referral_count || 0;
+    state.referralNextMilestone = data.referral_next_milestone || 5;
+    state.referralMilestoneStep = data.referral_milestone_step || 5;
+
+    updateBalanceDisplay();
+    updatePremiumBanner();
+    updateReferralProgress();
+    document.getElementById("refLink").textContent = data.referral_link;
+    window._refLink = data.referral_link;
+
+    // Haqiqiy statistika (serverdan)
+    if (data.stats) {
+      document.getElementById("statBooks").textContent = data.stats.books;
+      document.getElementById("statHours").textContent = data.stats.hours;
+      document.getElementById("statStreak").textContent = data.stats.streak;
+      document.getElementById("statBadges").textContent = data.stats.badges;
+    }
+
+    // Profil ma'lumotlari
+    const tgUser = tg.initDataUnsafe?.user;
+    const displayName = tgUser?.first_name || data.username || "Foydalanuvchi";
+    const usernameTag = tgUser?.username ? `@${tgUser.username}` : "";
+    document.getElementById("profileName").textContent = displayName;
+    document.getElementById("profileAvatar").textContent = displayName.charAt(0).toUpperCase();
+    if (usernameTag) {
+      document.getElementById("profileUsername").innerHTML = `${usernameTag} · Balans: <span id="profileBalance">${data.coins}</span> 🪙`;
+    }
+
+    // Kunlik STREAK bonusi (hammaga) — birinchi navbatda ko'rsatiladi
+    if (data.streak_bonus_earned && data.streak_bonus_earned > 0) {
+      const streakDay = data.stats ? data.stats.streak : 0;
+      setTimeout(() => showCoinToast(data.streak_bonus_earned, `${streakDay}-kunlik streak bonusi`), 600);
+    }
+    // Qo'shimcha kunlik bonus (faqat Premium)
+    if (data.daily_bonus_earned && data.daily_bonus_earned > 0) {
+      setTimeout(() => showCoinToast(data.daily_bonus_earned, "Premium kunlik bonus"), 1400);
+    }
+  } catch (e) {
+    console.error("Ma'lumot yuklashda xato:", e);
+  }
+}
+
+function updateReferralProgress() {
+  const step = state.referralMilestoneStep;
+  const next = state.referralNextMilestone;
+  const count = state.referralCount;
+  const prevMilestone = next - step;
+  const progressInStep = count - prevMilestone;
+  const pct = Math.min(100, Math.round((progressInStep / step) * 100));
+
+  document.getElementById("refCountText").textContent = count;
+  document.getElementById("refMilestoneText").textContent = `/ ${next}`;
+  document.getElementById("refProgressFill").style.width = `${pct}%`;
+
+  const remaining = next - count;
+  const msgEl = document.getElementById("refProgressMsg");
+  if (remaining <= 0) {
+    msgEl.textContent = "🎉 Sovg'a hisobingizga qo'shildi!";
+  } else {
+    msgEl.textContent = `🎁 Yana ${remaining} ta do'st taklif qiling — 3 kunlik Premium bepul olasiz!`;
+  }
+}
+
+function updatePremiumBanner() {
+  const emoji = document.getElementById("premiumEmoji");
+  const title = document.getElementById("premiumTitle");
+  const sub = document.getElementById("premiumSub");
+  const tag = document.getElementById("premiumTag");
+  const shopNote = document.getElementById("shopPremiumNote");
+
+  if (state.isPremium) {
+    emoji.textContent = "🌟";
+    title.textContent = "Premium faol";
+    sub.textContent = state.premiumExpiresAt
+      ? `Amal qilish muddati: ${state.premiumExpiresAt} gacha`
+      : "Barcha imtiyozlar yoqilgan";
+    tag.textContent = "Faol";
+    tag.style.background = "rgba(22, 163, 74, 0.14)";
+    tag.style.color = "var(--success)";
+    if (shopNote) shopNote.style.display = "block";
+  } else {
+    emoji.textContent = "⭐";
+    title.textContent = "Premium yoqilmagan";
+    sub.textContent = "2x koin, tezroq taymer, chegirmalar — bosing";
+    tag.textContent = "Yo'q";
+    tag.style.background = "";
+    tag.style.color = "";
+    if (shopNote) shopNote.style.display = "none";
+  }
+}
+
+function updateBalanceDisplay() {
+  document.getElementById("headerBalance").textContent = state.coins;
+  document.getElementById("friendsBalance").textContent = state.coins;
+  const pb = document.getElementById("profileBalance");
+  if (pb) pb.textContent = state.coins;
+  renderShop(); // do'kon tugmalari balansga qarab yoqiladi/o'chadi
+}
+
+function showCoinToast(amount, label) {
+  const toast = document.getElementById("coinToast");
+  toast.textContent = label ? `+${amount} 🪙 ${label}!` : `+${amount} 🪙 qo'shildi!`;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+// ================== TABLAR ==================
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+    tg.HapticFeedback.impactOccurred("light");
+    if (btn.dataset.tab === "leaderboard") loadLeaderboard();
+  });
+});
+
+// Premium banner bosilsa — to'g'ridan-to'g'ri Do'kon bo'limiga o'tkazamiz
+document.getElementById("premiumBanner").addEventListener("click", () => {
+  document.querySelector('.tab-btn[data-tab="shop"]').click();
+});
+
+// ================== KITOB O'QISH MANTIG'I ==================
+
+function getCurrentBook() {
+  return BOOKS[state.currentBookId] || BOOKS.free;
+}
+
+function openBook(bookId) {
+  if (!BOOKS[bookId]) return;
+  state.currentBookId = bookId;
+  state.currentPage = 0;
+  document.querySelector('.tab-btn[data-tab="books"]').click();
+  renderBookSwitcher();
+  renderPage();
+}
+
+function renderBookSwitcher() {
+  const box = document.getElementById("bookSwitcher");
+  if (!box) return;
+  const ownedBookIds = (state.ownedItems || [])
+    .filter(i => i.type === "book" && BOOKS[i.item_id])
+    .map(i => i.item_id);
+  const chips = ["free", ...ownedBookIds];
+
+  box.innerHTML = chips.map(id => {
+    const b = BOOKS[id];
+    const active = id === state.currentBookId ? "active" : "";
+    return `<button class="book-chip ${active}" data-book-id="${id}">${b.emoji} ${b.title}</button>`;
+  }).join("");
+
+  box.querySelectorAll(".book-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      state.currentBookId = chip.dataset.bookId;
+      state.currentPage = 0;
+      renderBookSwitcher();
+      renderPage();
+      tg.HapticFeedback.impactOccurred("light");
+    });
+  });
+}
+
+function renderPage() {
+  const book = getCurrentBook();
+  document.getElementById("bookTitle").textContent = book.title;
+  document.getElementById("bookAuthor").textContent = book.author;
+  document.getElementById("pageNum").textContent = state.currentPage + 1;
+  document.getElementById("pageTotal").textContent = book.pages.length;
+  document.getElementById("pageText").textContent = book.pages[state.currentPage];
+
+  const nextBtn = document.getElementById("nextPageBtn");
+  const timerBox = document.getElementById("timerBox");
+
+  if (state.currentPage >= book.pages.length - 1) {
+    timerBox.style.display = "none";
+    nextBtn.style.display = "block";
+    nextBtn.textContent = "📖 Kitob tugadi!";
+    nextBtn.className = "btn btn-disabled";
+    nextBtn.disabled = true;
+    return;
+  }
+
+  timerBox.style.display = "block";
+  nextBtn.style.display = "none";
+  startPageTimer();
+}
+
+function startPageTimer() {
+  clearInterval(state.timerInterval);
+  state.timeLeft = state.pageTimerSeconds;
+  document.getElementById("timerCircle").textContent = state.timeLeft;
+
+  state.timerInterval = setInterval(() => {
+    state.timeLeft--;
+    document.getElementById("timerCircle").textContent = state.timeLeft;
+
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timerInterval);
+      onTimerFinished();
+    }
+  }, 1000);
+}
+
+async function onTimerFinished() {
+  document.getElementById("timerBox").style.display = "none";
+  const nextBtn = document.getElementById("nextPageBtn");
+  nextBtn.style.display = "block";
+  nextBtn.className = "btn btn-primary";
+  nextBtn.disabled = false;
+  nextBtn.textContent = `Keyingi sahifa (+${state.coinsPerPage} 🪙)`;
+
+  try {
+    const result = await apiPost("/api/earn", { amount: state.coinsPerPage });
+    if (result.success) {
+      state.coins = result.coins;
+      updateBalanceDisplay();
+      showCoinToast(state.coinsPerPage);
+      tg.HapticFeedback.notificationOccurred("success");
+    }
+  } catch (e) {
+    console.error("Koin qo'shishda xato:", e);
+  }
+}
+
+document.getElementById("nextPageBtn").addEventListener("click", () => {
+  const book = getCurrentBook();
+  if (state.currentPage < book.pages.length - 1) {
+    state.currentPage++;
+    renderPage();
+  }
+});
+
+// ================== DO'STLAR TAB ==================
+
+document.getElementById("copyRefBtn").addEventListener("click", () => {
+  const link = window._refLink || "";
+  navigator.clipboard.writeText(link).then(() => {
+    tg.HapticFeedback.notificationOccurred("success");
+    const btn = document.getElementById("copyRefBtn");
+    const original = btn.textContent;
+    btn.textContent = "✅ Nusxalandi!";
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }).catch(() => {
+    tg.showAlert("Havolani nusxalab bo'lmadi. Qo'lda nusxalang: " + link);
+  });
+});
+
+// ---------- Reyting (Leaderboard) ----------
+
+let currentLbTab = "coins";
+let lbDataCache = null;
+let lbAutoRefreshInterval = null;
+
+document.querySelectorAll(".lb-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".lb-tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentLbTab = btn.dataset.lb;
+    renderLeaderboard();
+    tg.HapticFeedback.impactOccurred("light");
+  });
+});
+
+async function loadLeaderboard() {
+  const list = document.getElementById("lbList");
+  if (!lbDataCache) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🏆</div><div>Yuklanmoqda...</div></div>`;
+  }
+  try {
+    lbDataCache = await apiGet("/api/leaderboard");
+    renderLeaderboard();
+  } catch (e) {
+    console.error("Reytingni yuklashda xato:", e);
+  }
+}
+
+function startLeaderboardAutoRefresh() {
+  stopLeaderboardAutoRefresh();
+  lbAutoRefreshInterval = setInterval(() => {
+    // Faqat Reyting tabi hozir ochiq bo'lsa yangilaymiz (fonda bekorga so'rov yubormaslik uchun)
+    if (document.getElementById("tab-leaderboard").classList.contains("active")) {
+      loadLeaderboard();
+    }
+  }, 18000); // 15-20 soniya oralig'ida
+}
+
+function stopLeaderboardAutoRefresh() {
+  if (lbAutoRefreshInterval) {
+    clearInterval(lbAutoRefreshInterval);
+    lbAutoRefreshInterval = null;
+  }
+}
+
+function renderLeaderboard() {
+  const list = document.getElementById("lbList");
+  if (!lbDataCache) return;
+  const rows = currentLbTab === "coins" ? (lbDataCache.coins || []) : (lbDataCache.referrals || []);
+  const unit = currentLbTab === "coins" ? "🪙" : "👥";
+
+  if (rows.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🏆</div><div>Hali ma'lumot yo'q.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map((r, i) => {
+    const rank = i + 1;
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+    const rankClass = rank === 1 ? "lb-rank top1" : "lb-rank";
+    return `
+      <div class="lb-row">
+        <div class="${rankClass}">${medal}</div>
+        <div class="lb-name">${r.name}</div>
+        <div class="lb-value">${r.value} ${unit}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ================== DO'KON TAB (narx/chegirma/qulf — barchasi serverdan) ==================
+
+let shopItemsData = [];
+
+async function loadShopItems() {
+  try {
+    const data = await apiGet("/api/shop_items");
+    shopItemsData = data.items || [];
+  } catch (e) {
+    console.error("Do'kon ro'yxatini yuklashda xato:", e);
+    shopItemsData = [];
+  }
+  renderShop();
+}
+
+async function refreshOwnedItems() {
+  try {
+    const data = await apiGet("/api/my_items");
+    state.ownedItems = data.items || [];
+  } catch (e) {
+    console.error("Xaridlarni yuklashda xato:", e);
+    state.ownedItems = state.ownedItems || [];
+  }
+}
+
+function renderShop() {
+  const list = document.getElementById("shopList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  if (shopItemsData.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🎁</div><div>Do'kon yuklanmoqda...</div></div>`;
+    return;
+  }
+
+  shopItemsData.forEach(item => {
+    const owned = item.owned;
+    const locked = item.locked;
+    const canAfford = state.coins >= item.cost;
+    const el = document.createElement("div");
+    el.className = "shop-item";
+
+    let buttonHtml;
+    if (owned) {
+      buttonHtml = `<div class="owned-tag">✅ Olingan</div>`;
+    } else if (locked) {
+      buttonHtml = `<div class="locked-tag">🔒 Premium</div>`;
+    } else {
+      buttonHtml = `<button class="buy-btn" ${canAfford ? "" : "disabled"} data-id="${item.item_id}">
+        ${canAfford ? "Sotib olish" : "Yetarli emas"}
+      </button>`;
+    }
+
+    const priceHtml = item.discounted
+      ? `<span class="old-price">${item.base_cost} 🪙</span>${item.cost} 🪙 <span class="discount-badge">-20%</span>`
+      : `${item.cost} 🪙`;
+
+    const nameExtra = item.premium_only ? `<span class="premium-only-badge">PREMIUM</span>` : "";
+
+    el.innerHTML = `
+      <div class="shop-emoji">${item.emoji}</div>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}${nameExtra}</div>
+        <div class="shop-cost">${priceHtml}</div>
+      </div>
+      ${buttonHtml}
+    `;
+    list.appendChild(el);
+  });
+
+  list.querySelectorAll(".buy-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const itemId = btn.dataset.id;
+      const item = shopItemsData.find(i => i.item_id === itemId);
+      btn.disabled = true;
+      btn.textContent = "...";
+      try {
+        const result = await apiPost("/api/purchase", { item: itemId });
+        if (result.success) {
+          state.coins = result.coins;
+          if (result.is_premium) {
+            state.isPremium = true;
+            state.premiumExpiresAt = result.premium_expires_at || state.premiumExpiresAt;
+            updatePremiumBanner();
+            await loadUserData(); // timer/coin_per_page kabi qiymatlarni yangilash uchun
+          }
+          await loadShopItems();
+          await refreshOwnedItems();
+          updateBalanceDisplay();
+          renderMyBooks();
+          renderBookSwitcher();
+          tg.HapticFeedback.notificationOccurred("success");
+          if (item.type === "book") {
+            tg.showAlert(`✅ "${item.name}" muvaffaqiyatli sotib olindi! Uni "Sahifam → Mening kitoblarim" bo'limidan topasiz.`);
+          } else if (item.type === "premium") {
+            tg.showAlert("🌟 Premium faollashtirildi! Endi 2x koin, tezroq taymer va 20% chegirmadan foydalanasiz.");
+          } else {
+            tg.showAlert("✅ Xarid muvaffaqiyatli amalga oshirildi!");
+          }
+        } else if (result.error === "already_owned") {
+          tg.showAlert("Siz bu mahsulotni allaqachon sotib olgansiz.");
+        } else if (result.error === "premium_required") {
+          tg.showAlert("🔒 Bu mahsulot faqat Premium foydalanuvchilar uchun mavjud.");
+        } else if (result.error === "insufficient_funds") {
+          tg.showAlert("❌ Koin yetarli emas.");
+        } else {
+          tg.showAlert("❌ Xatolik yuz berdi.");
+        }
+      } catch (e) {
+        tg.showAlert("Xatolik yuz berdi, qayta urinib ko'ring.");
+      }
+      renderShop();
+    });
+  });
+}
+
+// ================== SAHIFAM TAB — navigatsiya ==================
+
+const profileViews = ["profileMainView", "myBooksView", "settingsView", "helpView"];
+
+function showProfileView(viewId) {
+  profileViews.forEach(v => {
+    document.getElementById(v).style.display = (v === viewId) ? "block" : "none";
+  });
+  if (viewId === "myBooksView") renderMyBooks();
+}
+
+document.querySelectorAll(".menu-item").forEach(item => {
+  item.addEventListener("click", () => {
+    tg.HapticFeedback.impactOccurred("light");
+    const section = item.dataset.section;
+    if (section === "myBooks") showProfileView("myBooksView");
+    else if (section === "settings") showProfileView("settingsView");
+    else if (section === "help") showProfileView("helpView");
+    else tg.showAlert(item.dataset.msg || "Tez orada!");
+  });
+});
+
+document.getElementById("myBooksBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+document.getElementById("settingsBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+document.getElementById("helpBackBtn").addEventListener("click", () => showProfileView("profileMainView"));
+
+function renderMyBooks() {
+  const owned = (state.ownedItems || []).filter(i => i.type === "book");
+  const list = document.getElementById("myBooksList");
+  if (!list) return;
+
+  if (owned.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">📚</div>
+        <div>Hali kitob sotib olmadingiz.<br>Do'kon bo'limidan kitob xarid qiling!</div>
+      </div>`;
+    return;
+  }
+  list.innerHTML = owned.map(b => `
+    <div class="owned-book-item" data-item-id="${b.item_id}">
+      <div class="emoji">${b.emoji}</div>
+      <div>
+        <div class="name">${b.name}</div>
+        <div class="date">Sotib olindi: ${b.date}</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".owned-book-item").forEach(el => {
+    el.addEventListener("click", () => {
+      const bookId = el.dataset.itemId;
+      if (!BOOKS[bookId]) {
+        tg.showAlert("Bu kitob matni hali qo'shilmagan.");
+        return;
+      }
+      showProfileView("profileMainView");
+      openBook(bookId);
+    });
+  });
+}
+
+// ================== SOZLAMALAR — toggle'lar ==================
+
+function setupToggle(id, storageKey, defaultOn) {
+  const el = document.getElementById(id);
+  const saved = localStorage.getItem(storageKey);
+  const isOn = saved === null ? defaultOn : saved === "true";
+  el.classList.toggle("on", isOn);
+  el.addEventListener("click", () => {
+    const nowOn = !el.classList.contains("on");
+    el.classList.toggle("on", nowOn);
+    localStorage.setItem(storageKey, nowOn);
+    tg.HapticFeedback.impactOccurred("light");
+  });
+}
+setupToggle("notifToggle", "pref_notifications", true);
+setupToggle("soundToggle", "pref_sounds", true);
+
+document.getElementById("resetProgressBtn").addEventListener("click", () => {
+  tg.showConfirm("Ushbu qurilmadagi barcha mahalliy ma'lumotlar (sozlamalar) o'chiriladi. Davom etilsinmi?", (confirmed) => {
+    if (confirmed) {
+      localStorage.clear();
+      tg.showAlert("Mahalliy ma'lumotlar tozalandi.");
+      renderShop();
+      renderMyBooks();
+    }
+  });
+});
+
+// ================== TANLOV (QUIZ) TAB ==================
+// Eslatma: quiz1 va quiz2 haqiqiy nashr etilgan o'zbek adabiyoti asarlari (Odam bo'lish qiyin,
+// Mehrobdan chayon) haqidagi bilim testlari. quiz3-5 esa mavzu jihatidan shu adabiyot an'analaridan
+// (mehnat va orzu, umid va ishonchsizlik, an'ana va zamon ziddiyati) ilhomlanib, ushbu ilova uchun
+// maxsus yozilgan ASL (original) hikoyalar asosida tuzilgan.
+
+const QUIZZES = [
+  {
+    id: "quiz1",
+    title: "Odam bo'lish qiyin kitobidan testlar",
+    prize: 300,
+    participants: 535,
+    questions: [
+      { q: "Asar muallifi kim?", options: ["O'lmas Umarbekov", "Cho'lpon", "Oybek", "Abdulla Qodiriy"], correct: 0 },
+      { q: "Asarning janri qanday?", options: ["She'riy to'plam", "Qissa", "Drama", "Roman"], correct: 1 },
+      { q: "Asar nechanchi yillarda yozilgan?", options: ["1950-yillar", "1960-yillar", "1970-yillar", "1980-yillar"], correct: 2 },
+      { q: "Asosiy qahramon qanday inson sifatida tasvirlanadi?", options: ["Sust va loqayd", "Faol va halol", "Ayyor", "Beparvo"], correct: 1 },
+      { q: "Asarda qaysi mavzu ko'tarilgan?", options: ["Sevgi", "Insoniylik va mas'uliyat", "Jang", "Sayohat"], correct: 1 },
+    ],
+  },
+  {
+    id: "quiz2",
+    title: "Mehrobdan chayon kitobidan testlar",
+    prize: 300,
+    participants: 428,
+    questions: [
+      { q: "Asar muallifi kim?", options: ["Abdulla Qodiriy", "Cho'lpon", "Fitrat", "Oybek"], correct: 0 },
+      { q: "Asarning bosh qahramoni kim?", options: ["Anvar", "Otabek", "Zebi", "Sardor"], correct: 0 },
+      { q: "Asar qaysi davr voqealarini aks ettiradi?", options: ["Sovet davri", "XX asr boshi Turkiston", "Hozirgi zamon", "Amir Temur davri"], correct: 1 },
+      { q: "Asarda qanday muammo ko'tariladi?", options: ["Ta'lim", "Ijtimoiy adolatsizlik", "Sport", "Texnologiya"], correct: 1 },
+      { q: "Roman qaysi janrga mansub?", options: ["Tarixiy roman", "Fantastika", "Detektiv", "Komediya"], correct: 0 },
+    ],
+  },
+  {
+    id: "quiz3",
+    title: "\"Kumush tong\" hikoyasidan testlar",
+    prize: 100,
+    participants: 212,
+    questions: [
+      { q: "\"Kumush tong\" hikoyasining bosh qahramoni kim?", options: ["Zebiniso", "Gulnora", "Mohira", "Nodira"], correct: 1 },
+      { q: "Gulnora qaysi hunar bilan shug'ullanadi?", options: ["To'quvchilik", "Duradgorlik", "Temirchilik", "Kulolchilik"], correct: 0 },
+      { q: "Gulnora nima bo'lishni orzu qiladi?", options: ["Shifokor", "O'qituvchi", "Aktrisa", "Muhandis"], correct: 1 },
+      { q: "Otasi Gulnorani nima qilishini xohlaydi?", options: ["Universitetga yubormoqchi", "Turmushga uzatmoqchi", "Shaharga ko'chirmoqchi", "Ishga joylashtirmoqchi"], correct: 1 },
+      { q: "Voqealar qaysi shaharda sodir bo'ladi?", options: ["Samarqand", "Marg'ilon", "Xiva", "Buxoro"], correct: 1 },
+    ],
+  },
+  {
+    id: "quiz4",
+    title: "\"Ikkilanish\" hikoyasidan testlar",
+    prize: 100,
+    participants: 176,
+    questions: [
+      { q: "\"Ikkilanish\" hikoyasining bosh qahramoni kim?", options: ["Sardor", "Anvar", "Jasur", "Bekzod"], correct: 1 },
+      { q: "Anvar qayerdan qaytib keladi?", options: ["Chet eldan", "Armiyadan", "Qishloqdan", "Poytaxtdan"], correct: 0 },
+      { q: "Hikoyaning asosiy mavzusi nima?", options: ["Sevgi uchburchagi", "Umidsizlik va ishonch", "Sarguzasht", "Jinoyat"], correct: 1 },
+      { q: "Anvar nimalarga shubha bilan qaray boshlaydi?", options: ["Mahalliy rahbarlarning va'dalariga", "Oilaviy an'analarga", "Do'stlariga", "Tabiat hodisalariga"], correct: 0 },
+      { q: "Hikoya qanday yakunlanadi?", options: ["Ochiq final bilan", "Baxtli to'y bilan", "Fojiali o'lim bilan", "Kulgili voqea bilan"], correct: 0 },
+    ],
+  },
+  {
+    id: "quiz5",
+    title: "\"Ikki dunyo oralig'ida\" hikoyasidan testlar 🌟",
+    prize: 140,
+    participants: 94,
+    premium: true,
+    questions: [
+      { q: "\"Ikki dunyo oralig'ida\" hikoyasi kimlar haqida?", options: ["Ikki og'a-ini", "Buvi va nabira", "Er-xotin", "Ustoz va shogird"], correct: 1 },
+      { q: "Buvining ismi nima?", options: ["Robiya", "Saodat", "Gulchehra", "Malika"], correct: 0 },
+      { q: "Nabiraning ismi nima?", options: ["Dilnoza", "Madina", "Shahnoza", "Aziza"], correct: 1 },
+      { q: "Voqealar qaysi shaharda o'tadi?", options: ["Toshkent", "Andijon", "Namangan", "Qarshi"], correct: 0 },
+      { q: "Hikoyaning markaziy g'oyasi nima?", options: ["An'ana va zamonaviylik o'rtasidagi ziddiyat", "Sevgi uchburchagi", "Jinoiy voqea", "Tabiat mo'jizasi"], correct: 0 },
+    ],
+  },
+];
+
+const QUESTION_TIME = 40;
+let quizState = {
+  quiz: null,
+  qIndex: 0,
+  correctCount: 0,
+  timerInterval: null,
+  timeLeft: QUESTION_TIME,
+  locked: false,
+};
+
+function renderQuizList() {
+  const list = document.getElementById("quizList");
+  list.innerHTML = "";
+  QUIZZES.forEach(quiz => {
+    const locked = quiz.premium && !state.isPremium;
+    const el = document.createElement("div");
+    el.className = "quiz-card";
+    el.innerHTML = `
+      <div class="quiz-title">${quiz.title}</div>
+      <div class="quiz-meta">
+        <span>❓ ${quiz.questions.length} savol</span>
+        <span>⏱ Har savolga ${QUESTION_TIME}s</span>
+        <span>🎁 ${quiz.prize} 🪙 sovrin</span>
+        <span>👥 ${quiz.participants} ishlagan</span>
+      </div>
+      ${locked
+        ? `<button class="quiz-start-btn" style="background:var(--card-2); color:var(--text-dim);" data-locked="1">🔒 Faqat Premium uchun</button>`
+        : `<button class="quiz-start-btn" data-id="${quiz.id}">Boshlash →</button>`}
+    `;
+    list.appendChild(el);
+  });
+
+  list.querySelectorAll(".quiz-start-btn[data-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const quiz = QUIZZES.find(q => q.id === btn.dataset.id);
+      startQuiz(quiz);
+    });
+  });
+  list.querySelectorAll(".quiz-start-btn[data-locked]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tg.showAlert("🔒 Bu tanlov faqat Premium foydalanuvchilar uchun ochiq. Do'kon bo'limidan Premium sotib oling!");
+    });
+  });
+}
+
+function startQuiz(quiz) {
+  quizState = { quiz, qIndex: 0, correctCount: 0, timerInterval: null, timeLeft: QUESTION_TIME, locked: false };
+  document.getElementById("quizListView").style.display = "none";
+  document.getElementById("quizResultView").style.display = "none";
+  document.getElementById("quizPlayView").style.display = "block";
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const { quiz, qIndex } = quizState;
+  const question = quiz.questions[qIndex];
+  quizState.locked = false;
+
+  document.getElementById("quizQuestionNum").textContent = `Savol ${qIndex + 1} / ${quiz.questions.length}`;
+  document.getElementById("quizProgressFill").style.width = `${(qIndex / quiz.questions.length) * 100}%`;
+  document.getElementById("quizQuestionText").textContent = question.q;
+
+  const optionsBox = document.getElementById("quizOptions");
+  optionsBox.innerHTML = "";
+  question.options.forEach((opt, i) => {
+    const b = document.createElement("button");
+    b.className = "quiz-option";
+    b.textContent = opt;
+    b.addEventListener("click", () => selectQuizAnswer(i));
+    optionsBox.appendChild(b);
+  });
+
+  startQuizTimer();
+}
+
+function startQuizTimer() {
+  clearInterval(quizState.timerInterval);
+  quizState.timeLeft = QUESTION_TIME;
+  document.getElementById("quizTimer").textContent = `⏱ ${quizState.timeLeft}s`;
+
+  quizState.timerInterval = setInterval(() => {
+    quizState.timeLeft--;
+    document.getElementById("quizTimer").textContent = `⏱ ${quizState.timeLeft}s`;
+    if (quizState.timeLeft <= 0) {
+      clearInterval(quizState.timerInterval);
+      selectQuizAnswer(-1);
+    }
+  }, 1000);
+}
+
+function selectQuizAnswer(selectedIndex) {
+  if (quizState.locked) return;
+  quizState.locked = true;
+  clearInterval(quizState.timerInterval);
+
+  const question = quizState.quiz.questions[quizState.qIndex];
+  const options = document.querySelectorAll(".quiz-option");
+  options.forEach((btn, i) => {
+    if (i === question.correct) btn.classList.add("correct");
+    else if (i === selectedIndex) btn.classList.add("wrong");
+  });
+
+  if (selectedIndex === question.correct) {
+    quizState.correctCount++;
+    tg.HapticFeedback.notificationOccurred("success");
+  } else {
+    tg.HapticFeedback.notificationOccurred("error");
+  }
+
+  setTimeout(() => {
+    quizState.qIndex++;
+    if (quizState.qIndex < quizState.quiz.questions.length) {
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }, 1000);
+}
+
+async function finishQuiz() {
+  document.getElementById("quizProgressFill").style.width = "100%";
+  document.getElementById("quizPlayView").style.display = "none";
+  document.getElementById("quizResultView").style.display = "block";
+
+  const total = quizState.quiz.questions.length;
+  const correct = quizState.correctCount;
+  document.getElementById("quizScoreText").textContent = `${correct} / ${total} to'g'ri`;
+
+  try {
+    const result = await apiPost("/api/quiz_complete", { correct, quiz_id: quizState.quiz.id });
+    if (result.success) {
+      state.coins = result.coins;
+      updateBalanceDisplay();
+      document.getElementById("quizRewardText").textContent = `+${result.earned} 🪙 yutib oldingiz`;
+      showCoinToast(result.earned);
+    } else {
+      document.getElementById("quizRewardText").textContent = "Koin qo'shib bo'lmadi";
+    }
+  } catch (e) {
+    document.getElementById("quizRewardText").textContent = "Koin qo'shib bo'lmadi";
+  }
+}
+
+document.getElementById("quizBackBtn").addEventListener("click", () => {
+  document.getElementById("quizResultView").style.display = "none";
+  document.getElementById("quizListView").style.display = "block";
+  renderQuizList(); // Premium holati o'zgargan bo'lishi mumkin — qulflarni yangilaymiz
+});
+
+// ================== ISHGA TUSHIRISH ==================
+
+async function init() {
+  await loadUserData();
+  await refreshOwnedItems();
+  await loadShopItems();
+  renderBookSwitcher();
+  renderPage();
+  renderQuizList();
+  renderMyBooks();
+  startLeaderboardAutoRefresh();
+}
+
+init();
+</script>
+
+</body>
+</html>
