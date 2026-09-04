@@ -81,11 +81,10 @@ SHOP_ITEMS = {
     "badge": {"name": "Faxriy nishon (profilga)", "emoji": "🏅", "cost": 80, "type": "badge", "premium_only": False},
     "premium": {"name": "1 haftalik Premium a'zolik", "emoji": "⭐", "cost": 500, "type": "premium", "premium_only": False},
 
-    # --- Yangi 3 ta kitob ---
-    # Nomlarni va narxlarni o'zingizga moslab o'zgartiring. Matn (asl kontent) index.html'da bo'ladi.
-    "book3": {"name": "Yangi kitob: \"<<< kitob nomi 1 >>>\"", "emoji": "📙", "cost": 150, "type": "book", "premium_only": False},
-    "book4": {"name": "Yangi kitob: \"<<< kitob nomi 2 >>>\"", "emoji": "📕", "cost": 150, "type": "book", "premium_only": False},
-    "book5": {"name": "Yangi kitob: \"<<< kitob nomi 3 >>>\"", "emoji": "🌟", "cost": 200, "type": "book", "premium_only": True},
+    # --- Yangi 3 ta kitob (asl, ilova uchun yozilgan matnlar; index.html'dagi Tanlov testlari shularga mos) ---
+    "book3": {"name": "Yangi kitob: \"Kumush tong\"", "emoji": "📙", "cost": 150, "type": "book", "premium_only": False},
+    "book4": {"name": "Yangi kitob: \"Ikkilanish\"", "emoji": "📕", "cost": 150, "type": "book", "premium_only": False},
+    "book5": {"name": "Yangi kitob: \"Ikki dunyo oralig'ida\"", "emoji": "🌟", "cost": 200, "type": "book", "premium_only": True},
 }
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
