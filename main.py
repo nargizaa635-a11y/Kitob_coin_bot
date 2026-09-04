@@ -1,5 +1,5 @@
 # main.py
-# "Kitob o'qib koin yig'ish" - Telegram Mini App backend
+# "Kitob Ovi" - Telegram Mini App backend
 # aiogram 3 (bot: majburiy obuna, referral) + aiohttp (Mini App uchun API server)
 # Ma'lumotlar Postgres'da saqlanadi (Railway Database xizmati) - Volume shart emas
 
@@ -29,6 +29,8 @@ import database as db
 
 # ================== SOZLAMALAR ==================
 
+APP_NAME = "Kitob Ovi"
+
 # XAVFSIZLIK: Token kodda YOZILMAYDI — Railway'da Variables bo'limiga BOT_TOKEN qilib qo'shiladi.
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
@@ -57,7 +59,16 @@ PAGE_TIMER_SECONDS = 30
 PAGE_TIMER_SECONDS_PREMIUM = 15
 
 # ---------- Referral bonusi ----------
-REFERRAL_BONUS = 300                 # avvalgi 150 o'rniga
+REFERRAL_BONUS = 300
+
+# ---------- Referral MILESTONE (bosqichma-bosqich sovg'a) ----------
+# Har REFERRAL_MILESTONE_STEP ta yangi taklif qilingan do'st uchun avtomatik Premium sovg'a
+REFERRAL_MILESTONE_STEP = 5
+REFERRAL_MILESTONE_PREMIUM_DAYS = 3
+
+# ---------- Kunlik STREAK bonusi (hammaga, ketma-ket kirgan kunlar uchun ortib boradi) ----------
+# Kun 1..7 uchun bonus, 7-kundan keyin yana 1-kundan boshlanadi (haftalik sikl)
+STREAK_BONUS_TABLE = {1: 5, 2: 10, 3: 15, 4: 25, 5: 35, 6: 50, 7: 100}
 
 # ---------- Tanlov (Quiz) uchun sozlamalar ----------
 QUIZ_REWARD_PER_CORRECT = 15
@@ -67,11 +78,20 @@ MAX_QUIZ_QUESTIONS = 30  # bitta tanlovda bo'lishi mumkin bo'lgan maksimal savol
 # ---------- Do'kon chegirmasi ----------
 SHOP_DISCOUNT_PREMIUM = 0.20         # 20%
 
-# ---------- Kunlik bonus (faqat Premium) ----------
+# ---------- Kunlik bonus (faqat Premium, streak bonusidan TASHQARI qo'shimcha) ----------
 DAILY_BONUS_PREMIUM = 50
 
 # ---------- Premium muddati ----------
 PREMIUM_DURATION_DAYS = 7
+
+# ---------- Eslatma (reminder) sozlamalari ----------
+REMINDER_CHECK_INTERVAL_SECONDS = 6 * 3600   # har 6 soatda tekshiradi
+REMINDER_INACTIVE_DAYS = 1                    # 1 kun ochilmasa eslatma yuboriladi
+REMINDER_MESSAGES = [
+    "📖 Yangi bob sizni kutmoqda! Hoziroq o'qishni davom ettiring va koin yig'ing.",
+    "🏹 Kitob Ovi sizni sog'indi! Bugun qancha koin yig'a olasiz?",
+    "🔥 Streak seriyangizni uzmang — bugun kirib, bonusingizni oling!",
+]
 
 # Do'kon mahsulotlari — narx va turi FAQAT serverda aniqlanadi (mijoz o'zgartira olmasligi uchun)
 # premium_only=True bo'lgan mahsulotni faqat hozir Premium bo'lgan foydalanuvchi sotib ola oladi.
@@ -81,7 +101,7 @@ SHOP_ITEMS = {
     "badge": {"name": "Faxriy nishon (profilga)", "emoji": "🏅", "cost": 80, "type": "badge", "premium_only": False},
     "premium": {"name": "1 haftalik Premium a'zolik", "emoji": "⭐", "cost": 500, "type": "premium", "premium_only": False},
 
-    # --- Yangi 3 ta kitob (asl, ilova uchun yozilgan matnlar; index.html'dagi Tanlov testlari shularga mos) ---
+    # --- Asl, ilova uchun yozilgan matnlar; index.html'dagi Tanlov testlari shularga mos ---
     "book3": {"name": "Yangi kitob: \"Kumush tong\"", "emoji": "📙", "cost": 150, "type": "book", "premium_only": False},
     "book4": {"name": "Yangi kitob: \"Ikkilanish\"", "emoji": "📕", "cost": 150, "type": "book", "premium_only": False},
     "book5": {"name": "Yangi kitob: \"Ikki dunyo oralig'ida\"", "emoji": "🌟", "cost": 200, "type": "book", "premium_only": True},
@@ -98,6 +118,11 @@ dp = Dispatcher()
 
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
+
+
+def get_streak_bonus_amount(streak: int) -> int:
+    day_in_cycle = ((streak - 1) % 7) + 1
+    return STREAK_BONUS_TABLE.get(day_in_cycle, 5)
 
 
 async def check_subscription(user_id: int) -> list:
@@ -142,6 +167,26 @@ async def grant_referral_bonus_if_needed(user_id: int):
             )
         except Exception:
             pass
+        await check_referral_milestone(inviter_id)
+
+
+async def check_referral_milestone(inviter_id: int):
+    """Har REFERRAL_MILESTONE_STEP ta qabul qilingan referal uchun avtomatik Premium sovg'a beradi."""
+    count = await db.get_referral_count(inviter_id)
+    tier = count // REFERRAL_MILESTONE_STEP
+    current_tier = await db.get_referral_milestone_tier(inviter_id)
+    if tier > current_tier:
+        await db.set_referral_milestone_tier(inviter_id, tier)
+        expires = await db.activate_premium(inviter_id, days=REFERRAL_MILESTONE_PREMIUM_DAYS)
+        try:
+            await bot.send_message(
+                inviter_id,
+                f"🏆 Tabriklaymiz! Siz {count} ta do'st taklif qildingiz.\n"
+                f"Sovg'a sifatida sizga {REFERRAL_MILESTONE_PREMIUM_DAYS} kunlik Premium taqdim etildi "
+                f"(muddati: {expires.strftime('%Y-%m-%d')} gacha)!"
+            )
+        except Exception:
+            pass
 
 
 # ================== BOT HANDLERLARI ==================
@@ -177,7 +222,7 @@ async def cmd_start(message: Message):
         await grant_referral_bonus_if_needed(user_id)
 
     await message.answer(
-        "✅ Xush kelibsiz!\n\n"
+        f"✅ Xush kelibsiz {APP_NAME}'ga!\n\n"
         "📚 Kitob o'qing, koin yig'ing, sovg'alarga almashtiring!\n\n"
         "Quyidagi tugma orqali ilovani oching:",
         reply_markup=webapp_keyboard(),
@@ -391,7 +436,11 @@ async def api_me(request: web.Request):
     streak = await db.update_streak(user_id)
     is_premium = await db.check_premium_status(user_id)
 
-    # Kunlik bonus - faqat Premium, kuniga 1 marta (ilova ochilganda avtomatik tekshiriladi)
+    # Kunlik STREAK bonusi - HAMMAGA, kuniga 1 marta, kun tartibiga qarab ortib boradi
+    streak_bonus_amount = get_streak_bonus_amount(streak)
+    streak_bonus_earned = await db.try_grant_streak_bonus(user_id, streak_bonus_amount)
+
+    # Qo'shimcha kunlik bonus - faqat Premium, kuniga 1 marta
     daily_bonus_earned = await db.try_grant_daily_bonus(user_id, DAILY_BONUS_PREMIUM)
 
     user = await db.get_user(user_id)
@@ -400,6 +449,9 @@ async def api_me(request: web.Request):
     pages_read = user["pages_read"] or 0
     hours_read = round(pages_read * 30 / 3600, 1)  # har sahifa ~30 soniya
 
+    referral_count = await db.get_referral_count(user_id)
+    referral_next_milestone = ((referral_count // REFERRAL_MILESTONE_STEP) + 1) * REFERRAL_MILESTONE_STEP
+
     bot_info = await bot.get_me()
     referral_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
 
@@ -407,11 +459,16 @@ async def api_me(request: web.Request):
         "user_id": user_id,
         "coins": user["coins"],
         "referral_link": referral_link,
+        "referral_count": referral_count,
+        "referral_next_milestone": referral_next_milestone,
+        "referral_milestone_step": REFERRAL_MILESTONE_STEP,
+        "referral_milestone_premium_days": REFERRAL_MILESTONE_PREMIUM_DAYS,
         "is_premium": is_premium,
         "premium_expires_at": user["premium_expires_at"].strftime("%Y-%m-%d %H:%M") if user["premium_expires_at"] else None,
         "page_timer_seconds": PAGE_TIMER_SECONDS_PREMIUM if is_premium else PAGE_TIMER_SECONDS,
         "coins_per_page": COINS_PER_PAGE_PREMIUM if is_premium else COINS_PER_PAGE,
-        "daily_bonus_earned": daily_bonus_earned,  # >0 bo'lsa, frontend "🎁 +50 koin!" deb ko'rsatishi mumkin
+        "streak_bonus_earned": streak_bonus_earned,
+        "daily_bonus_earned": daily_bonus_earned,
         "stats": {
             "books": books_count,
             "hours": hours_read,
@@ -433,15 +490,6 @@ async def api_earn(request: web.Request):
     amount = int(body.get("amount", 0))
     if amount <= 0 or amount > max_allowed:
         return web.json_response({"error": "invalid_amount"}, status=400)
-
-    # ESLATMA (Premium-only kitob uchun): agar index.html /api/earn ga "book_id" yuborsa,
-    # shu yerda SHOP_ITEMS[book_id]["premium_only"] ni tekshirib, premium bo'lmagan
-    # foydalanuvchiga rad javobini qaytarish mumkin. Hozircha bu parametr yuborilmayapti,
-    # shuning uchun bu tekshiruv o'chirilgan holda turibdi:
-    #
-    # book_id = body.get("book_id")
-    # if book_id and SHOP_ITEMS.get(book_id, {}).get("premium_only") and not is_premium:
-    #     return web.json_response({"error": "premium_required"}, status=403)
 
     new_balance = await db.add_coins(user_id, amount)
     await db.increment_pages_read(user_id)
@@ -561,6 +609,33 @@ async def api_quiz_complete(request: web.Request):
     return web.json_response({"success": True, "coins": new_balance, "earned": earned, "is_premium": is_premium})
 
 
+async def api_leaderboard(request: web.Request):
+    """Koin va referral bo'yicha top-10 ro'yxatini qaytaradi (Do'stlar bo'limidagi Reyting uchun)."""
+    init_data = request.query.get("initData", "")
+    user_data = validate_init_data(init_data)
+    if not user_data:
+        return web.json_response({"error": "unauthorized"}, status=401)
+
+    coins_rows = await db.get_coins_leaderboard(10)
+    referral_rows = await db.get_referral_leaderboard(10)
+
+    def display_name(username, user_id):
+        if username and not str(username).isdigit():
+            return f"@{username}"
+        return f"ID{str(user_id)[-4:]}"
+
+    coins_list = [
+        {"name": display_name(r["username"], r["user_id"]), "value": r["coins"]}
+        for r in coins_rows
+    ]
+    referral_list = [
+        {"name": display_name(r["username"], r["user_id"]), "value": r["cnt"]}
+        for r in referral_rows
+    ]
+
+    return web.json_response({"coins": coins_list, "referrals": referral_list})
+
+
 async def index_page(request: web.Request):
     return web.FileResponse("./index.html")
 
@@ -574,7 +649,34 @@ def create_app() -> web.Application:
     app.router.add_post("/api/purchase", api_purchase)
     app.router.add_get("/api/my_items", api_my_items)
     app.router.add_post("/api/quiz_complete", api_quiz_complete)
+    app.router.add_get("/api/leaderboard", api_leaderboard)
     return app
+
+
+# ================== FOYDALANUVCHILARGA ESLATMA YUBORISH (retention) ==================
+
+async def reminder_loop():
+    """
+    Muntazam ravishda uzoq vaqt kirmagan foydalanuvchilarga eslatma yuboradi.
+    Bu ixtiyoriy eslatma - foydalanuvchi botni istalgan vaqt /stop yoki block qilishi mumkin,
+    hech qanday texnik cheklov qo'yilmagan.
+    """
+    while True:
+        try:
+            users = await db.get_users_for_reminder(inactive_days=REMINDER_INACTIVE_DAYS)
+            for u in users:
+                try:
+                    text = random.choice(REMINDER_MESSAGES)
+                    await bot.send_message(u["user_id"], text, reply_markup=webapp_keyboard())
+                    await db.mark_reminder_sent(u["user_id"])
+                    await asyncio.sleep(0.05)  # flood-limitga tushmaslik uchun kichik pauza
+                except Exception:
+                    # Foydalanuvchi botni block qilgan yoki boshqa xato - o'tkazib yuboramiz
+                    pass
+        except Exception as e:
+            logger.warning(f"Reminder loop xatosi: {e}")
+
+        await asyncio.sleep(REMINDER_CHECK_INTERVAL_SECONDS)
 
 
 # ================== ASOSIY FUNKSIYA ==================
@@ -595,7 +697,10 @@ async def main():
     await site.start()
     logger.info(f"Web server {PORT}-portda ishga tushdi")
 
-    logger.info("Bot ishga tushdi...")
+    asyncio.create_task(reminder_loop())
+    logger.info("Eslatma (reminder) fon vazifasi ishga tushirildi")
+
+    logger.info(f"{APP_NAME} boti ishga tushdi...")
     await dp.start_polling(bot)
 
 
