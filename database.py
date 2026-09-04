@@ -1,6 +1,5 @@
 # database.py
 # Postgres (Railway'ning tayyor ma'lumotlar bazasi xizmati) bilan ishlash
-# Volume shart emas - Postgres ma'lumotlarni o'zi doimiy saqlaydi
 
 import os
 import asyncpg
@@ -10,9 +9,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 _pool: asyncpg.Pool = None
 
-
 async def init_db():
-    """Ma'lumotlar bazasiga ulanib, kerakli jadvallarni yaratadi."""
     global _pool
     if not DATABASE_URL:
         raise RuntimeError(
@@ -32,26 +29,16 @@ async def init_db():
                 joined_date TEXT
             )
         """)
-        # Statistika uchun yangi ustunlar (eski jadvalga xavfsiz qo'shiladi)
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS pages_read INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date TEXT")
-
-        # --- PREMIUM uchun ustunlar ---
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMP")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus_date TEXT")
-
-        # --- YANGI: kunlik STREAK bonusi (hammaga, premium shart emas) ---
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_bonus_date TEXT")
-
-        # --- YANGI: referral milestone (bosqichma-bosqich sovg'a) ---
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_milestone_tier INTEGER DEFAULT 0")
-
-        # --- YANGI: eslatma (reminder) yuborilgan sanani kuzatish uchun ---
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reminder_date TEXT")
 
-        # Do'kondan qilingan xaridlar - endi doimiy saqlanadi (localStorage emas)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS purchases (
                 id SERIAL PRIMARY KEY,
@@ -64,6 +51,17 @@ async def init_db():
             )
         """)
 
+        # Sirli Sandiq jadvali
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS chest_opens (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                chest_type TEXT NOT NULL,
+                reward_type TEXT,
+                reward_amount INTEGER,
+                opened_date TEXT
+            )
+        """)
 
 # ---------- FOYDALANUVCHILAR ----------
 
@@ -71,9 +69,7 @@ async def get_user(user_id: int):
     async with _pool.acquire() as conn:
         return await conn.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
 
-
 async def create_user_if_missing(user_id: int, username: str, referred_by: int = None) -> bool:
-    """True qaytarsa - bu yangi foydalanuvchi."""
     async with _pool.acquire() as conn:
         existing = await conn.fetchrow("SELECT 1 FROM users WHERE user_id = $1", user_id)
         if existing:
@@ -85,9 +81,7 @@ async def create_user_if_missing(user_id: int, username: str, referred_by: int =
         )
         return True
 
-
 async def add_coins(user_id: int, amount: int) -> int:
-    """Koin qo'shadi (yoki manfiy son bilan ayiradi) va yangi balansni qaytaradi."""
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
             "UPDATE users SET coins = coins + $1 WHERE user_id = $2 RETURNING coins",
@@ -95,21 +89,17 @@ async def add_coins(user_id: int, amount: int) -> int:
         )
         return row["coins"] if row else 0
 
-
 async def mark_referral_rewarded(user_id: int):
     async with _pool.acquire() as conn:
         await conn.execute("UPDATE users SET referral_rewarded = TRUE WHERE user_id = $1", user_id)
-
 
 async def get_all_users():
     async with _pool.acquire() as conn:
         return await conn.fetch("SELECT * FROM users")
 
-
-# ---------- STATISTIKA (Sahifam uchun) ----------
+# ---------- STATISTIKA ----------
 
 async def increment_pages_read(user_id: int) -> int:
-    """Kitob sahifasi o'qilganda chaqiriladi, jami o'qilgan sahifalar sonini qaytaradi."""
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
             "UPDATE users SET pages_read = pages_read + 1 WHERE user_id = $1 RETURNING pages_read",
@@ -117,9 +107,7 @@ async def increment_pages_read(user_id: int) -> int:
         )
         return row["pages_read"] if row else 0
 
-
 async def update_streak(user_id: int) -> int:
-    """Foydalanuvchi ilovani ochganda kunlik seriyani (streak) yangilaydi."""
     today = datetime.now().strftime("%Y-%m-%d")
     async with _pool.acquire() as conn:
         user = await conn.fetchrow(
@@ -132,7 +120,7 @@ async def update_streak(user_id: int) -> int:
         streak = user["streak_days"] or 0
 
         if last_date == today:
-            return streak  # bugun allaqachon hisoblangan
+            return streak
 
         if last_date:
             try:
@@ -151,15 +139,9 @@ async def update_streak(user_id: int) -> int:
         )
         return streak
 
-
-# ---------- KUNLIK STREAK BONUSI (hammaga, premium shart emas) ----------
+# ---------- STREAK BONUSI ----------
 
 async def try_grant_streak_bonus(user_id: int, amount: int) -> int:
-    """
-    Har kuni ilova birinchi marta ochilganda 1 marta beriladi (barcha foydalanuvchilar uchun).
-    Miqdor kun tartibiga (1-7) qarab main.py'da hisoblanadi.
-    Return: berilgan koin miqdori (0 - agar bugun allaqachon olingan bo'lsa).
-    """
     today = datetime.now().strftime("%Y-%m-%d")
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -174,15 +156,9 @@ async def try_grant_streak_bonus(user_id: int, amount: int) -> int:
         )
         return amount
 
-
 # ---------- PREMIUM ----------
 
 async def check_premium_status(user_id: int) -> bool:
-    """
-    Foydalanuvchi hozir Premium ekanini tekshiradi.
-    Muddati tugagan bo'lsa, shu yerning o'zida avtomatik is_premium=FALSE qiladi
-    (alohida cron/scheduler kerak emas - har safar shu funksiya chaqirilganda tekshiriladi).
-    """
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT is_premium, premium_expires_at FROM users WHERE user_id = $1", user_id
@@ -198,13 +174,7 @@ async def check_premium_status(user_id: int) -> bool:
 
         return True
 
-
 async def activate_premium(user_id: int, days: int = 7) -> datetime:
-    """
-    Premium sotib olinganda (yoki sovg'a sifatida berilganda) chaqiriladi.
-    Agar hozir ham faol Premium bo'lsa - muddatga QO'SHIB boradi (cho'zadi).
-    Agar Premium tugagan/yo'q bo'lsa - hozirgi vaqtdan +N kun qilib beradi.
-    """
     now = datetime.now()
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -223,12 +193,7 @@ async def activate_premium(user_id: int, days: int = 7) -> datetime:
         )
     return new_expiry
 
-
 async def try_grant_daily_bonus(user_id: int, amount: int) -> int:
-    """
-    Kunlik bonusni beradi - FAQAT Premium foydalanuvchiga, kuniga 1 marta.
-    Return: berilgan koin miqdori (0 - agar Premium bo'lmasa yoki bugun allaqachon olingan bo'lsa).
-    """
     is_premium = await check_premium_status(user_id)
     if not is_premium:
         return 0
@@ -247,8 +212,7 @@ async def try_grant_daily_bonus(user_id: int, amount: int) -> int:
         )
         return amount
 
-
-# ---------- REFERRAL: soni va bosqichma-bosqich (milestone) sovg'a ----------
+# ---------- REFERRAL ----------
 
 async def get_referral_count(user_id: int) -> int:
     async with _pool.acquire() as conn:
@@ -257,7 +221,6 @@ async def get_referral_count(user_id: int) -> int:
         )
         return row["cnt"] if row else 0
 
-
 async def get_referral_milestone_tier(user_id: int) -> int:
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -265,22 +228,19 @@ async def get_referral_milestone_tier(user_id: int) -> int:
         )
         return row["referral_milestone_tier"] if row and row["referral_milestone_tier"] else 0
 
-
 async def set_referral_milestone_tier(user_id: int, tier: int):
     async with _pool.acquire() as conn:
         await conn.execute(
             "UPDATE users SET referral_milestone_tier = $1 WHERE user_id = $2", tier, user_id
         )
 
-
-# ---------- REYTING (Leaderboard) ----------
+# ---------- REYTING ----------
 
 async def get_coins_leaderboard(limit: int = 10):
     async with _pool.acquire() as conn:
         return await conn.fetch(
             "SELECT user_id, username, coins FROM users ORDER BY coins DESC LIMIT $1", limit
         )
-
 
 async def get_referral_leaderboard(limit: int = 10):
     async with _pool.acquire() as conn:
@@ -296,28 +256,9 @@ async def get_referral_leaderboard(limit: int = 10):
             limit,
         )
 
-
-async def get_user_coins_rank(user_id: int):
-    async with _pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            SELECT rank FROM (
-                SELECT user_id, RANK() OVER (ORDER BY coins DESC) as rank
-                FROM users
-            ) ranked WHERE user_id = $1
-            """,
-            user_id,
-        )
-        return row["rank"] if row else None
-
-
-# ---------- ESLATMA (reminder) uchun faol bo'lmagan foydalanuvchilar ----------
+# ---------- ESLATMA ----------
 
 async def get_users_for_reminder(inactive_days: int = 1):
-    """
-    Kamida `inactive_days` kundan beri ilovani ochmagan va bugun eslatma
-    olmagan foydalanuvchilar ro'yxatini qaytaradi.
-    """
     cutoff = (datetime.now() - timedelta(days=inactive_days)).strftime("%Y-%m-%d")
     today = datetime.now().strftime("%Y-%m-%d")
     async with _pool.acquire() as conn:
@@ -330,7 +271,6 @@ async def get_users_for_reminder(inactive_days: int = 1):
             cutoff, today,
         )
 
-
 async def mark_reminder_sent(user_id: int):
     today = datetime.now().strftime("%Y-%m-%d")
     async with _pool.acquire() as conn:
@@ -338,8 +278,7 @@ async def mark_reminder_sent(user_id: int):
             "UPDATE users SET last_reminder_date = $1 WHERE user_id = $2", today, user_id
         )
 
-
-# ---------- DO'KON XARIDLARI ----------
+# ---------- DO'KON ----------
 
 async def is_item_owned(user_id: int, item_id: str) -> bool:
     async with _pool.acquire() as conn:
@@ -348,29 +287,44 @@ async def is_item_owned(user_id: int, item_id: str) -> bool:
         )
         return row is not None
 
-
 async def add_purchase(user_id: int, item_id: str, item_name: str, item_emoji: str, item_type: str):
     async with _pool.acquire() as conn:
         await conn.execute(
-            "INSERT INTO purchases (user_id, item_id, item_name, item_emoji, item_type, purchased_at) "
-            "VALUES ($1, $2, $3, $4, $5, $6)",
+            """
+            INSERT INTO purchases (user_id, item_id, item_name, item_emoji, item_type, purchased_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            """,
             user_id, item_id, item_name, item_emoji, item_type,
-            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            datetime.now().strftime("%Y-%m-%d %H:%M")
         )
 
-
-async def get_purchases(user_id: int):
+async def get_user_purchases(user_id: int):
     async with _pool.acquire() as conn:
         return await conn.fetch(
-            "SELECT * FROM purchases WHERE user_id = $1 ORDER BY purchased_at DESC", user_id
+            "SELECT * FROM purchases WHERE user_id = $1 ORDER BY id DESC", user_id
         )
 
+# ---------- SIRLI SANDIQ ----------
 
-async def count_purchases_by_type(user_id: int, item_type: str) -> int:
+async def get_chest_opens_today(user_id: int, chest_type: str) -> int:
+    today = datetime.now().strftime("%Y-%m-%d")
     async with _pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT COUNT(*) as cnt FROM purchases WHERE user_id = $1 AND item_type = $2",
-            user_id, item_type,
+            """
+            SELECT COUNT(*) as cnt FROM chest_opens 
+            WHERE user_id = $1 AND chest_type = $2 AND opened_date = $3
+            """,
+            user_id, chest_type, today
         )
         return row["cnt"] if row else 0
 
+async def record_chest_open(user_id: int, chest_type: str, reward_type: str, reward_amount: int):
+    today = datetime.now().strftime("%Y-%m-%d")
+    async with _pool.acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO chest_opens (user_id, chest_type, reward_type, reward_amount, opened_date)
+            VALUES ($1, $2, $3, $4, $5)
+            """,
+            user_id, chest_type, reward_type, reward_amount, today
+    )
