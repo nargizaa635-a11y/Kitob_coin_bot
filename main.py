@@ -55,6 +55,14 @@ REFERRAL_BONUS = 150
 QUIZ_REWARD_PER_CORRECT = 15
 MAX_QUIZ_QUESTIONS = 30  # bitta tanlovda bo'lishi mumkin bo'lgan maksimal savol soni (himoya uchun)
 
+# Do'kon mahsulotlari — narx va turi FAQAT serverda aniqlanadi (mijoz o'zgartira olmasligi uchun)
+SHOP_ITEMS = {
+    "book1": {"name": "Yangi kitob: \"Yulduzlar sayohati\"", "emoji": "📗", "cost": 100, "type": "book"},
+    "book2": {"name": "Yangi kitob: \"Vaqt mashinasi\"", "emoji": "📘", "cost": 150, "type": "book"},
+    "badge": {"name": "Faxriy nishon (profilga)", "emoji": "🏅", "cost": 80, "type": "badge"},
+    "premium": {"name": "1 haftalik Premium a'zolik", "emoji": "⭐", "cost": 500, "type": "premium"},
+}
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -184,9 +192,53 @@ async def cmd_admin(message: Message):
         [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
     ])
     await message.answer(
-        f"🛠 <b>Admin panel</b>\n\n👥 Jami foydalanuvchilar: {len(users)}",
+        f"🛠 <b>Admin panel</b>\n\n👥 Jami foydalanuvchilar: {len(users)}\n\n"
+        f"💰 Koin qo'shish uchun buyruqlar:\n"
+        f"<code>/addcoins 500</code> — o'zingizga 500 koin qo'shish\n"
+        f"<code>/addcoins 123456789 500</code> — boshqa foydalanuvchiga koin qo'shish\n"
+        f"(manfiy son yozsangiz — koin ayiradi, masalan <code>/addcoins -50</code>)",
         reply_markup=keyboard,
     )
+
+
+@dp.message(Command("myid"))
+async def cmd_myid(message: Message):
+    await message.answer(f"🆔 Sizning Telegram ID: <code>{message.from_user.id}</code>")
+
+
+@dp.message(Command("addcoins"))
+async def cmd_addcoins(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ Bu buyruq faqat administratorlar uchun.")
+        return
+
+    parts = message.text.split()
+    try:
+        if len(parts) == 3:
+            target_id = int(parts[1])
+            amount = int(parts[2])
+        elif len(parts) == 2:
+            target_id = message.from_user.id
+            amount = int(parts[1])
+        else:
+            raise ValueError
+    except ValueError:
+        await message.answer(
+            "❗ Foydalanish:\n"
+            "<code>/addcoins 500</code> — o'zingizga 500 koin qo'shish\n"
+            "<code>/addcoins 123456789 500</code> — boshqa foydalanuvchiga koin qo'shish"
+        )
+        return
+
+    new_balance = await db.add_coins(target_id, amount)
+    await message.answer(
+        f"✅ <code>{target_id}</code> foydalanuvchiga {amount:+d} koin. Yangi balans: {new_balance}"
+    )
+    if target_id != message.from_user.id and amount > 0:
+        try:
+            await bot.send_message(target_id, f"🎁 Sizga admin tomonidan {amount} koin qo'shildi!")
+        except Exception:
+            pass
 
 
 @dp.callback_query(F.data == "admin_randomizer")
@@ -272,7 +324,13 @@ async def api_me(request: web.Request):
     user_id = user_data["id"]
     username = user_data.get("username") or user_data.get("first_name", "")
     await db.create_user_if_missing(user_id, username)
+
+    streak = await db.update_streak(user_id)
     user = await db.get_user(user_id)
+    books_count = await db.count_purchases_by_type(user_id, "book")
+    badges_count = await db.count_purchases_by_type(user_id, "badge")
+    pages_read = user["pages_read"] or 0
+    hours_read = round(pages_read * 30 / 3600, 1)  # har sahifa ~30 soniya
 
     bot_info = await bot.get_me()
     referral_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
@@ -281,6 +339,12 @@ async def api_me(request: web.Request):
         "user_id": user_id,
         "coins": user["coins"],
         "referral_link": referral_link,
+        "stats": {
+            "books": books_count,
+            "hours": hours_read,
+            "streak": streak,
+            "badges": badges_count,
+        },
     })
 
 
@@ -295,6 +359,7 @@ async def api_earn(request: web.Request):
         return web.json_response({"error": "invalid_amount"}, status=400)
 
     new_balance = await db.add_coins(user_id, amount)
+    await db.increment_pages_read(user_id)
     return web.json_response({"success": True, "coins": new_balance})
 
 
@@ -304,13 +369,44 @@ async def api_purchase(request: web.Request):
     if not user_id:
         return web.json_response({"error": "unauthorized"}, status=401)
 
-    cost = int(body.get("cost", 0))
+    item_id = body.get("item")
+    item = SHOP_ITEMS.get(item_id)
+    if not item:
+        return web.json_response({"error": "invalid_item"}, status=400)
+
+    already_owned = await db.is_item_owned(user_id, item_id)
+    if already_owned:
+        return web.json_response({"error": "already_owned"}, status=400)
+
+    cost = item["cost"]
     user = await db.get_user(user_id)
     if not user or user["coins"] < cost:
         return web.json_response({"error": "insufficient_funds"}, status=400)
 
     new_balance = await db.add_coins(user_id, -cost)
+    await db.add_purchase(user_id, item_id, item["name"], item["emoji"], item["type"])
     return web.json_response({"success": True, "coins": new_balance})
+
+
+async def api_my_items(request: web.Request):
+    init_data = request.query.get("initData", "")
+    user_data = validate_init_data(init_data)
+    if not user_data:
+        return web.json_response({"error": "unauthorized"}, status=401)
+
+    user_id = user_data["id"]
+    purchases = await db.get_purchases(user_id)
+    items = [
+        {
+            "item_id": p["item_id"],
+            "name": p["item_name"],
+            "emoji": p["item_emoji"],
+            "type": p["item_type"],
+            "date": p["purchased_at"],
+        }
+        for p in purchases
+    ]
+    return web.json_response({"items": items})
 
 
 async def api_quiz_complete(request: web.Request):
@@ -339,6 +435,7 @@ def create_app() -> web.Application:
     app.router.add_get("/api/me", api_me)
     app.router.add_post("/api/earn", api_earn)
     app.router.add_post("/api/purchase", api_purchase)
+    app.router.add_get("/api/my_items", api_my_items)
     app.router.add_post("/api/quiz_complete", api_quiz_complete)
     return app
 
