@@ -4,7 +4,7 @@
 
 import os
 import asyncpg
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -36,6 +36,11 @@ async def init_db():
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS pages_read INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date TEXT")
+
+        # --- PREMIUM uchun yangi ustunlar ---
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE")
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMP")
+        await conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus_date TEXT")
 
         # Do'kondan qilingan xaridlar - endi doimiy saqlanadi (localStorage emas)
         await conn.execute("""
@@ -138,6 +143,79 @@ async def update_streak(user_id: int) -> int:
         return streak
 
 
+# ---------- PREMIUM ----------
+
+async def check_premium_status(user_id: int) -> bool:
+    """
+    Foydalanuvchi hozir Premium ekanini tekshiradi.
+    Muddati tugagan bo'lsa, shu yerning o'zida avtomatik is_premium=FALSE qiladi
+    (alohida cron/scheduler kerak emas - har safar shu funksiya chaqirilganda tekshiriladi).
+    """
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT is_premium, premium_expires_at FROM users WHERE user_id = $1", user_id
+        )
+        if not row or not row["is_premium"]:
+            return False
+
+        if row["premium_expires_at"] and row["premium_expires_at"] <= datetime.now():
+            await conn.execute(
+                "UPDATE users SET is_premium = FALSE WHERE user_id = $1", user_id
+            )
+            return False
+
+        return True
+
+
+async def activate_premium(user_id: int, days: int = 7) -> datetime:
+    """
+    Premium sotib olinganda chaqiriladi.
+    Agar hozir ham faol Premium bo'lsa - muddatga QO'SHIB boradi (cho'zadi).
+    Agar Premium tugagan/yo'q bo'lsa - hozirgi vaqtdan +N kun qilib beradi.
+    """
+    now = datetime.now()
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT is_premium, premium_expires_at FROM users WHERE user_id = $1", user_id
+        )
+        current_expiry = row["premium_expires_at"] if row else None
+
+        if row and row["is_premium"] and current_expiry and current_expiry > now:
+            new_expiry = current_expiry + timedelta(days=days)
+        else:
+            new_expiry = now + timedelta(days=days)
+
+        await conn.execute(
+            "UPDATE users SET is_premium = TRUE, premium_expires_at = $1 WHERE user_id = $2",
+            new_expiry, user_id,
+        )
+    return new_expiry
+
+
+async def try_grant_daily_bonus(user_id: int, amount: int) -> int:
+    """
+    Kunlik bonusni beradi - FAQAT Premium foydalanuvchiga, kuniga 1 marta.
+    Return: berilgan koin miqdori (0 - agar Premium bo'lmasa yoki bugun allaqachon olingan bo'lsa).
+    """
+    is_premium = await check_premium_status(user_id)
+    if not is_premium:
+        return 0
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    async with _pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT last_daily_bonus_date FROM users WHERE user_id = $1", user_id
+        )
+        if row and row["last_daily_bonus_date"] == today:
+            return 0
+
+        await conn.execute(
+            "UPDATE users SET coins = coins + $1, last_daily_bonus_date = $2 WHERE user_id = $3",
+            amount, today, user_id,
+        )
+        return amount
+
+
 # ---------- DO'KON XARIDLARI ----------
 
 async def is_item_owned(user_id: int, item_id: str) -> bool:
@@ -172,3 +250,4 @@ async def count_purchases_by_type(user_id: int, item_type: str) -> int:
             user_id, item_type,
         )
         return row["cnt"] if row else 0
+
