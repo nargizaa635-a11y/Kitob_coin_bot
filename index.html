@@ -465,6 +465,39 @@
   .owned-book-item .emoji { font-size: 26px; }
   .owned-book-item .name { font-weight: 700; font-size: 14px; }
   .owned-book-item .date { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+  .owned-book-item { cursor: pointer; transition: transform 0.1s; }
+  .owned-book-item:active { transform: scale(0.98); }
+  .owned-book-item .arrow { margin-left: auto; color: var(--text-dim); font-size: 18px; }
+
+  .book-switcher {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .book-switcher::-webkit-scrollbar { display: none; }
+  .book-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .book-chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+    border-color: transparent;
+  }
 
   .toggle-row {
     display: flex;
@@ -512,9 +545,10 @@
 
   <!-- ===== KITOBLAR TAB ===== -->
   <div class="tab-content active" id="tab-books">
+    <div class="book-switcher" id="bookSwitcher"></div>
     <div class="card">
-      <div class="book-title">Sahroning siri</div>
-      <div class="book-author">Bir bo'lakli qissa</div>
+      <div class="book-title" id="bookTitle">Sahroning siri</div>
+      <div class="book-author" id="bookAuthor">Bir bo'lakli qissa</div>
       <div class="page-indicator">Sahifa <span id="pageNum">1</span> / <span id="pageTotal">5</span></div>
       <div class="page-text" id="pageText"></div>
 
@@ -730,6 +764,7 @@ tg.expand();
 // ================== HOLAT ==================
 let state = {
   coins: 0,
+  currentBookId: "free",
   currentPage: 0,
   timerInterval: null,
   timeLeft: 30,
@@ -741,13 +776,83 @@ let state = {
   ownedItems: [],
 };
 
-const BOOK_PAGES = [
-  "Sahroning qoq o'rtasida, quyosh tig'ida yolg'iz yurgan Sardor uzoqdan bir soyani ko'rdi. U charchagan, lekin umidini yo'qotmagan edi. Har bir qadam unga yangi kuch berayotgandek tuyulardi...",
-  "Soya yaqinlashgan sari, u buni eski bir karvon yo'lovchisi ekanini angladi. Chol unga suv taklif qildi va sahroning sirlari haqida gapira boshladi — bu yerda har bir qumtepaning o'z tarixi bor edi...",
-  "\"Bu yo'lda yurganlarning barchasi bir narsani izlaydi\", dedi chol. \"Sen nimani izlayapsan, yigit?\" Sardor bir lahza jim qoldi, so'ng javob berdi: \"Men o'zimni izlayapman...\"",
-  "Kechqurun ular olov yoqib, yulduzlar ostida o'tirishdi. Chol unga qadimiy bir xazina haqida hikoya qildi — bu xazina oltin emas, balki har bir insonning ichida yashiringan kuch edi...",
-  "Ertalab Sardor uyg'onganida, chol yo'q edi. Faqat qumga chizilgan bir belgi qolgan edi. U buni tushundi: haqiqiy sayohat hali boshlanmagan, u hozirgina o'z ichki dunyosini kashf qila boshlagan edi."
-];
+// Har bir kitob uchun: sarlavha, muallif/janr yorlig'i, emoji va sahifalar.
+// "free" — ilovadagi asosiy bepul kitob (do'kondan sotib olinmaydi).
+// book1-book5 — do'kondan sotib olinadigan kitoblar (barchasi ilova uchun yozilgan asl matnlar).
+const BOOKS = {
+  free: {
+    title: "Sahroning siri",
+    author: "Bir bo'lakli qissa",
+    emoji: "🏜️",
+    pages: [
+      "Sahroning qoq o'rtasida, quyosh tig'ida yolg'iz yurgan Sardor uzoqdan bir soyani ko'rdi. U charchagan, lekin umidini yo'qotmagan edi. Har bir qadam unga yangi kuch berayotgandek tuyulardi...",
+      "Soya yaqinlashgan sari, u buni eski bir karvon yo'lovchisi ekanini angladi. Chol unga suv taklif qildi va sahroning sirlari haqida gapira boshladi — bu yerda har bir qumtepaning o'z tarixi bor edi...",
+      "\"Bu yo'lda yurganlarning barchasi bir narsani izlaydi\", dedi chol. \"Sen nimani izlayapsan, yigit?\" Sardor bir lahza jim qoldi, so'ng javob berdi: \"Men o'zimni izlayapman...\"",
+      "Kechqurun ular olov yoqib, yulduzlar ostida o'tirishdi. Chol unga qadimiy bir xazina haqida hikoya qildi — bu xazina oltin emas, balki har bir insonning ichida yashiringan kuch edi...",
+      "Ertalab Sardor uyg'onganida, chol yo'q edi. Faqat qumga chizilgan bir belgi qolgan edi. U buni tushundi: haqiqiy sayohat hali boshlanmagan, u hozirgina o'z ichki dunyosini kashf qila boshlagan edi."
+    ],
+  },
+  book1: {
+    title: "Yulduzlar sayohati",
+    author: "Ilmiy-fantastik hikoya",
+    emoji: "📗",
+    pages: [
+      "Elyor kichkina qishloqda yashardi, lekin uning nigohi doim osmonga tikilardi. U eski bir linza va bir nechta quvurdan o'zi teleskop yasagan edi — buni hech kim jiddiy qabul qilmasdi.",
+      "Bir kecha u teleskop orqali g'alati miltillovchi nuqtani ko'rdi. Bu oddiy yulduz emasdi — u sekin-asta harakatlanardi. Elyor daftariga uning yo'lini chiza boshladi, kechalab uyg'onib kuzatardi.",
+      "Oy oxirida u tushundi: bu kichik sun'iy yo'ldosh emas, balki uzoq-uzoqlardan kelayotgan ma'lumot signali edi. Elyor buni shahar observatoriyasidagi olimlarga yozib yubordi.",
+      "Javob kutilmaganda tez keldi: uning hisob-kitoblari to'g'ri chiqqan edi! Observatoriya uni maxsus dasturga taklif qildi — bu uning ilk qadami, katta olam sari ochilgan eshik edi.",
+      "Yillar o'tib, Elyor haqiqiy astronom bo'ldi. Lekin u hech qachon o'sha birinchi kechani, qishloq tomida yolg'iz turib osmonni kuzatgan lahzani unutmadi — hamma katta sayohat bitta savoldan boshlanadi."
+    ],
+  },
+  book2: {
+    title: "Vaqt mashinasi",
+    author: "Sarguzasht hikoya",
+    emoji: "📘",
+    pages: [
+      "Diyor mehanik edi, lekin uning haqiqiy ishtiyoqi boshqa narsada — u bolaligidan buyon \"vaqtni to'xtatib turish\" mumkinmi, degan savol bilan yashardi. Ustaxonasida g'alati bir soat yasay boshladi.",
+      "Uch yillik mashaqqatli ishdan so'ng, soat g'alati tarzda ishlay boshladi: uni burab qo'ysang, atrofdagi hamma narsa sekinlashardi — go'yo vaqt cho'zilgandek bo'lardi.",
+      "Diyor bu \"kichik vaqt mashinasi\"ni sinab ko'rdi: bir kunlik ishni bir necha soatga siqib bajardi. Lekin tez orada u charchoq va yolg'izlikni his qildi — atrofidagilar bilan vaqt o'tkazishga ulgurmayotgan edi.",
+      "U qarindoshlarini, do'stlarini sog'inib qoldi. Shunda tushundiki, asl \"vaqt mashinasi\" — tezlashtirish emas, balki har bir lahzani to'la anglab yashash ekan.",
+      "Diyor soatni tokchaga qo'yib qo'ydi va oilasi bilan choy ichishga chiqdi. U hali ham kashfiyotchi edi — lekin endi uning eng qimmatli kashfiyoti oddiy bir haqiqat bo'ldi: vaqtni to'xtatib bo'lmaydi, uni faqat qadrlash mumkin."
+    ],
+  },
+  book3: {
+    title: "Kumush tong",
+    author: "Ilova uchun yozilgan asl hikoya",
+    emoji: "📙",
+    pages: [
+      "Marg'ilonning tor ko'chalaridan birida, tong saharlab dastgoh g'ichirlay boshlardi. Gulnora ipak iplarni mohirlik bilan to'qir, lekin uning ko'zlari doim derazadan tashqariga, maktab tomon boqardi.",
+      "U kechalari, hamma uxlagach, amakisidan qolgan eski darsliklarni yorug'lik ostida o'qirdi. Gulnora o'qituvchi bo'lishni orzu qilardi — bolalarga harflarni tanishtirish, ularning ko'zlaridagi hayratni ko'rish uning eng katta orzusi edi.",
+      "Otasi esa boshqacha rejalar tuzgan edi: qo'shni mahalladan sovchilar kelmoqchi bo'lib, u qizini turmushga uzatishga qaror qilgandi. \"O'qish keyin ham bo'ladi\", derdi otasi, biroq Gulnora buning aksini his qilardi.",
+      "Onasi, jim va sabr bilan, qizining daftarlarini yashirincha saqlab qo'yardi. Bir kuni u Gulnorani mahalla oqsoqoliga — o'zi yoshligida o'qituvchi bo'lgan kishiga — olib bordi. Suhbat uzoq davom etdi.",
+      "Oqsoqol otasi bilan gaplashib, qizining iqtidori haqida gapirdi: \"Har bir qo'lning o'z hunari bor, lekin har bir ongning ham o'z yo'li bor.\" Ko'p o'tmay, Gulnora kechki maktabga qatnay boshladi — kumush tong unga yangi kunni va'da qilardi."
+    ],
+  },
+  book4: {
+    title: "Ikkilanish",
+    author: "Ilova uchun yozilgan asl hikoya",
+    emoji: "📕",
+    pages: [
+      "Anvar besh yildan so'ng o'z shahriga qaytdi. Chet elda tahsil olgan, ko'p narsani ko'rgan edi — va endi tug'ilgan tumanini o'zgacha ko'z bilan kuzatardi.",
+      "Mahalliy rahbarlar uni katta va'dalar bilan kutib olishdi: yangi yo'llar, ish o'rinlari, zamonaviy loyihalar. Anvar quloq solar, lekin so'zlar ortida qanchalik haqiqat borligiga shubha qilardi.",
+      "U bolalik do'sti Jasur bilan uchrashdi. Jasur unga: \"Bu yerda va'dalar ko'p, lekin ishlar kam. Sen nima qilmoqchisan — ishonasanmi yoki ketasanmi?\" — deb savol berdi.",
+      "Anvar tunlari uzoq o'ylanib chiqdi. Uning ichida ikki ovoz bahslashardi: biri — \"hamma joyda shunday, foyda yo'q\", ikkinchisi — \"agar hamma ketib qolsa, o'zgarish kim bilan bo'ladi?\"",
+      "Ertasi kuni Anvar hokimiyatga bordi — lekin ishonch bilan emas, savol bilan: \"Va'dalaringizni qog'ozga tushiring, men esa muddatlarni nazorat qilaman.\" Hikoya ochiq qoladi: ishonch qayta tug'iladimi yoki yo'qmi, buni faqat vaqt ko'rsatadi."
+    ],
+  },
+  book5: {
+    title: "Ikki dunyo oralig'ida",
+    author: "Ilova uchun yozilgan asl hikoya (Premium)",
+    emoji: "🌟",
+    pages: [
+      "Toshkentning eski mahallasida, baland binolar soyasida kichkina hovli bor edi. U yerda Robiya buvi kun bo'yi qatiq uyur, gilam to'qirdi — va nabirasi Madinaning universitetdan qaytishini kutardi.",
+      "Madina zamonaviy dizayn kompaniyasida ishlardi, kechalari esa telefonida chet el mijozlari bilan yozishardi. Buvisining \"kelin bo'lish, uy tebratish\" haqidagi gaplarini u sabr bilan, ammo ichida norozi bo'lib tinglardi.",
+      "Bir kuni Robiya buvi eski sandiqdan yoshligidagi rasmlarni chiqardi — u ham yoshligida rassomlik orzu qilgan, lekin davr sharoiti boshqacha bo'lgan ekan. Madina buvisini birinchi marta boshqacha ko'zda ko'rdi.",
+      "\"Sen orzuingdan voz kechding, men esa o'zimnikidan voz kechmoqchimasman\", dedi Madina yumshoq ohangda. Robiya jim qoldi, so'ng birinchi marta jilmayib: \"Balki men ham voz kechmasligim kerak edi\", dedi.",
+      "Ertasi kuni ular ikkoviga xos bir kelishuvga keldi: kechqurunlari birga choy ichib, Madina ish haqida, Robiya esa yoshligi haqida gapirib berardi. Ikki dunyo — kecha va kunduz kabi — bir tomda birlashishni o'rgandi."
+    ],
+  },
+};
 
 // ================== API FUNKSIYALARI ==================
 
@@ -874,15 +979,56 @@ document.getElementById("premiumBanner").addEventListener("click", () => {
 
 // ================== KITOB O'QISH MANTIG'I ==================
 
+function getCurrentBook() {
+  return BOOKS[state.currentBookId] || BOOKS.free;
+}
+
+function openBook(bookId) {
+  if (!BOOKS[bookId]) return;
+  state.currentBookId = bookId;
+  state.currentPage = 0;
+  document.querySelector('.tab-btn[data-tab="books"]').click();
+  renderBookSwitcher();
+  renderPage();
+}
+
+function renderBookSwitcher() {
+  const box = document.getElementById("bookSwitcher");
+  if (!box) return;
+  const ownedBookIds = (state.ownedItems || [])
+    .filter(i => i.type === "book" && BOOKS[i.item_id])
+    .map(i => i.item_id);
+  const chips = ["free", ...ownedBookIds];
+
+  box.innerHTML = chips.map(id => {
+    const b = BOOKS[id];
+    const active = id === state.currentBookId ? "active" : "";
+    return `<button class="book-chip ${active}" data-book-id="${id}">${b.emoji} ${b.title}</button>`;
+  }).join("");
+
+  box.querySelectorAll(".book-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      state.currentBookId = chip.dataset.bookId;
+      state.currentPage = 0;
+      renderBookSwitcher();
+      renderPage();
+      tg.HapticFeedback.impactOccurred("light");
+    });
+  });
+}
+
 function renderPage() {
+  const book = getCurrentBook();
+  document.getElementById("bookTitle").textContent = book.title;
+  document.getElementById("bookAuthor").textContent = book.author;
   document.getElementById("pageNum").textContent = state.currentPage + 1;
-  document.getElementById("pageTotal").textContent = BOOK_PAGES.length;
-  document.getElementById("pageText").textContent = BOOK_PAGES[state.currentPage];
+  document.getElementById("pageTotal").textContent = book.pages.length;
+  document.getElementById("pageText").textContent = book.pages[state.currentPage];
 
   const nextBtn = document.getElementById("nextPageBtn");
   const timerBox = document.getElementById("timerBox");
 
-  if (state.currentPage >= BOOK_PAGES.length - 1) {
+  if (state.currentPage >= book.pages.length - 1) {
     timerBox.style.display = "none";
     nextBtn.style.display = "block";
     nextBtn.textContent = "📖 Kitob tugadi!";
@@ -934,7 +1080,8 @@ async function onTimerFinished() {
 }
 
 document.getElementById("nextPageBtn").addEventListener("click", () => {
-  if (state.currentPage < BOOK_PAGES.length - 1) {
+  const book = getCurrentBook();
+  if (state.currentPage < book.pages.length - 1) {
     state.currentPage++;
     renderPage();
   }
@@ -1045,6 +1192,7 @@ function renderShop() {
           await refreshOwnedItems();
           updateBalanceDisplay();
           renderMyBooks();
+          renderBookSwitcher();
           tg.HapticFeedback.notificationOccurred("success");
           if (item.type === "book") {
             tg.showAlert(`✅ "${item.name}" muvaffaqiyatli sotib olindi! Uni "Sahifam → Mening kitoblarim" bo'limidan topasiz.`);
@@ -1110,14 +1258,27 @@ function renderMyBooks() {
     return;
   }
   list.innerHTML = owned.map(b => `
-    <div class="owned-book-item">
+    <div class="owned-book-item" data-item-id="${b.item_id}">
       <div class="emoji">${b.emoji}</div>
       <div>
         <div class="name">${b.name}</div>
         <div class="date">Sotib olindi: ${b.date}</div>
       </div>
+      <div class="arrow">›</div>
     </div>
   `).join("");
+
+  list.querySelectorAll(".owned-book-item").forEach(el => {
+    el.addEventListener("click", () => {
+      const bookId = el.dataset.itemId;
+      if (!BOOKS[bookId]) {
+        tg.showAlert("Bu kitob matni hali qo'shilmagan.");
+        return;
+      }
+      showProfileView("profileMainView");
+      openBook(bookId);
+    });
+  });
 }
 
 // ================== SOZLAMALAR — toggle'lar ==================
@@ -1378,6 +1539,7 @@ async function init() {
   await loadUserData();
   await refreshOwnedItems();
   await loadShopItems();
+  renderBookSwitcher();
   renderPage();
   renderQuizList();
   renderMyBooks();
