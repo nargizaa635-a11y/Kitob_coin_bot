@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kitob Ovi</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #F3FBF3;
+    --card: #FFFFFF;
+    --card-2: #EAF7EA;
+    --accent: #16A34A;
+    --accent-light: #22C55E;
+    --accent-2: #F59E0B;
+    --text: #1E1B2E;
+    --text-dim: #6B7280;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --border: #E1F0E1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding-bottom: 80px;
+    min-height: 100vh;
+  }
+  .header {
+    padding: 20px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .balance-pill {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
+  }
+  .container { padding: 0 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 10px rgba(22, 163, 74, 0.06);
+  }
+  .back-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 2px 4px; font-weight: 700; font-size: 14px; color: var(--accent);
+  }
+  .back-row span { cursor: pointer; }
+  .tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    padding: 8px 1px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    background: rgba(22, 163, 74, 0.1);
+  }
+  .tab-btn .icon { font-size: 19px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white;
+  }
+  .btn:disabled {
+    background: var(--card-2) !important;
+    color: var(--text-dim) !important;
+    cursor: not-allowed;
+  }
+
+  /* ===== BOSH SAHIFA ===== */
+  .hero-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    padding: 20px;
+    color: white;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #16A34A 0%, #22C55E 45%, #F59E0B 100%);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.25);
+  }
+  .hero-deco { position: absolute; opacity: 0.16; pointer-events: none; }
+  .hero-label {
+    font-size: 12.5px; opacity: 0.9; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px; font-weight: 700;
+  }
+  .hero-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; position: relative; z-index: 1;
+  }
+  .hero-num { font-size: 24px; font-weight: 800; line-height: 1.1; }
+  .hero-sub { font-size: 11.5px; opacity: 0.88; margin-top: 2px; }
+
+  .quicklinks-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
+  }
+  .quicklink {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 6px; text-align: center; cursor: pointer;
+  }
+  .quicklink .emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+  .quicklink .label { font-size: 11px; font-weight: 700; color: var(--text-dim); }
+
+  .banner {
+    position: relative; border-radius: 16px; padding: 16px; margin-bottom: 14px;
+    cursor: pointer; overflow: hidden;
+  }
+  .banner-row { display: flex; align-items: center; gap: 12px; }
+  .banner-emoji { font-size: 32px; flex-shrink: 0; }
+  .banner-title { font-weight: 800; font-size: 14.5px; }
+  .banner-sub { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+  .banner-badge {
+    background: var(--danger); color: white; font-size: 11px; font-weight: 800;
+    border-radius: 20px; padding: 2px 8px; margin-left: auto; flex-shrink: 0;
+  }
+  .banner-arrow { margin-left: auto; font-size: 18px; opacity: 0.6; flex-shrink: 0; }
+  .banner-light { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+  .banner-light .banner-sub { color: var(--text-dim); }
+  .banner-soon { opacity: 0.65; cursor: default; }
+  .soon-tag {
+    background: rgba(0,0,0,0.08); font-size: 10.5px; font-weight: 800;
+    border-radius: 10px; padding: 3px 8px; margin-left: auto; flex-shrink: 0;
+  }
+
+  .daily-bonus-banner {
+    background: linear-gradient(135deg, #22C55E, #16A34A);
+    color: white;
+  }
+
+  .progress-track {
+    background: rgba(0,0,0,0.08); border-radius: 20px; height: 10px; overflow: hidden; margin: 10px 0 6px;
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); height: 100%; border-radius: 20px;
+    transition: width 0.4s ease;
+  }
+  .weekly-details { font-size: 12.5px; color: var(--text-dim); margin-top: 8px; line-height: 1.6; display: none; }
+  .weekly-details.show { display: block; }
+  .link-btn {
+    background: none; border: none; color: var(--accent); font-weight: 700; font-size: 12.5px;
+    cursor: pointer; padding: 4px 0;
+  }
+
+  .winner-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border);
+  }
+  .winner-row:last-child { border-bottom: none; }
+  .winner-emoji { font-size: 20px; }
+  .winner-name { font-weight: 700; font-size: 13.5px; }
+  .winner-meta { font-size: 11.5px; color: var(--text-dim); }
+  .winner-prize { margin-left: auto; font-weight: 800; font-size: 12.5px; color: #b45309; text-align: right; }
+  .empty-note { color: var(--text-dim); font-size: 13px; text-align: center; padding: 10px 0; }
+
+  /* ===== SIRLI SANDIQ ===== */
+  .chest-hero {
+    position: relative; overflow: hidden; border-radius: 18px; padding: 20px 16px;
+    text-align: center; color: white; margin-bottom: 14px;
+    background: linear-gradient(160deg, #173404 0%, #3B6D11 35%, #639922 60%, #EF9F27 100%);
+  }
+  .chest-hero svg { width: 130px; height: auto; margin: 2px auto 4px; display: block; }
+  .chest-hero .t { font-size: 16px; font-weight: 800; margin-bottom: 3px; }
+  .chest-hero .s { font-size: 12.5px; opacity: 0.9; }
+  .sparkle { position: absolute; opacity: 0.5; }
+
+  .chest-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .chest-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+    padding: 20px; text-align: center; box-shadow: 0 4px 16px rgba(22, 163, 74, 0.08);
+  }
+  .chest-emoji { font-size: 52px; margin-bottom: 10px; display: block; }
+  .chest-name { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+  .chest-cost { font-size: 14px; color: #b45309; font-weight: 700; margin-bottom: 8px; }
+  .chest-limit { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+  .chest-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white; border: none; padding: 12px; border-radius: 12px;
+    font-weight: 700; font-size: 14px; width: 100%; cursor: pointer;
+  }
+  .chest-btn:disabled { background: #E1F0E1; color: var(--text-dim); cursor: not-allowed; }
+
+  .chest-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
+    align-items: center; justify-content: center; z-index: 999; flex-direction: column;
+  }
+  .chest-overlay.show { display: flex; }
+  .chest-anim { font-size: 90px; animation: bounce 0.6s ease infinite alternate; }
+  @keyframes bounce {
+    from { transform: scale(1) rotate(-5deg); }
+    to { transform: scale(1.15) rotate(5deg); }
+  }
+  .reward-box {
+    background: white; border-radius: 20px; padding: 28px 36px; text-align: center;
+    margin-top: 20px; animation: popIn 0.4s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .reward-text { font-size: 22px; font-weight: 800; color: var(--accent); margin-top: 8px; }
+
+  /* Boshqa stillar */
+  .book-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .book-author { color: var(--text-dim); font-size: 13px; margin-bottom: 16px; }
+  .page-indicator { color: var(--text-dim); font-size: 12px; margin-bottom: 8px; }
+  .page-text { line-height: 1.7; font-size: 15px; color: #33303f; min-height: 180px; }
+  .book-done { text-align: center; padding: 20px 0; }
+  .book-done .emoji { font-size: 44px; margin-bottom: 8px; }
+  .ref-box {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px;
+  }
+  .ref-link { flex: 1; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-btn {
+    background: var(--accent); color: white; border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .info-text { color: var(--text-dim); font-size: 13px; line-height: 1.6; margin-top: 14px; }
+  .lb-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .lb-tab-btn {
+    flex: 1; background: var(--card-2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 8px; border-radius: 10px;
+    font-weight: 700; font-size: 12.5px; cursor: pointer;
+  }
+  .lb-tab-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white; border-color: transparent;
+  }
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { width: 24px; text-align: center; font-weight: 800; color: var(--accent); font-size: 13px; }
+  .lb-name { flex: 1; font-weight: 700; font-size: 13.5px; }
+  .lb-value { font-weight: 800; font-size: 13.5px; color: var(--text-dim); }
+  .shop-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px;
+    background: var(--card-2); border-radius: 14px; margin-bottom: 10px;
+  }
+  .shop-emoji { font-size: 30px; }
+  .shop-info { flex: 1; }
+  .shop-name { font-weight: 700; font-size: 14px; }
+  .shop-cost { color: #b45309; font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .buy-btn {
+    background: var(--accent); color: white; border: none;
+    padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .buy-btn:disabled { background: #E1F0E1; color: var(--text-dim); cursor: not-allowed; }
+  .owned-tag {
+    background: rgba(22, 163, 74, 0.12); color: var(--success);
+    font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 10px;
+  }
+  .profile-header { display: flex; align-items: center; gap: 14px; padding: 6px 2px 20px; }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800; color: white;
+  }
+  .profile-name { font-size: 17px; font-weight: 700; }
+  .profile-username { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 6px; text-align: center;
+  }
+  .stat-box .num { font-size: 18px; font-weight: 800; color: var(--accent); }
+  .stat-box .label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .quiz-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px;
+  }
+  .quiz-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .quiz-meta { display: flex; flex-wrap: wrap; gap: 10px; color: var(--text-dim); font-size: 12px; margin-bottom: 12px; }
+  .quiz-start-btn {
+    width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white; border: none; padding: 11px; border-radius: 10px;
+    font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .quiz-option {
+    display: block; width: 100%; text-align: left; background: var(--card-2);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 8px; font-size: 14px; cursor: pointer; color: var(--text);
+  }
+  .quiz-option.correct { background: rgba(22,163,74,0.15); border-color: var(--success); }
+  .quiz-option.wrong { background: rgba(220,38,38,0.12); border-color: var(--danger); }
+  .quiz-progress { color: var(--text-dim); font-size: 12px; margin-bottom: 10px; }
+  .task-item { padding: 12px 4px; border-bottom: 1px solid var(--border); }
+  .task-item:last-child { border-bottom: none; }
+  .task-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .task-title { font-weight: 700; font-size: 13.5px; }
+  .task-reward { font-size: 12px; color: #b45309; font-weight: 700; }
+  .task-claim-btn {
+    margin-top: 8px; background: var(--accent); color: white; border: none;
+    padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 12.5px; cursor: pointer;
+  }
+  .task-claim-btn:disabled { background: #E1F0E1; color: var(--text-dim); cursor: not-allowed; }
+  .history-row { padding: 10px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .history-row:last-child { border-bottom: none; }
+  .history-row .meta { color: var(--text-dim); font-size: 11.5px; margin-top: 2px; }
+  .coin-toast {
+    position: fixed; top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--success); color: white;
+    padding: 12px 20px; border-radius: 30px;
+    font-weight: 700; font-size: 14px; z-index: 200;
+    transition: transform 0.35s ease;
+  }
+  .coin-toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏹 Kitob Ovi</h1>
+  <div class="balance-pill">
+    <span>🪙</span>
+    <span id="balance">0</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- BOSH SAHIFA -->
+  <div id="tab-bosh" class="tab-content active">
+
+    <div class="hero-card">
+      <span class="hero-deco" style="top:-14px; right:-8px; font-size:80px; transform:rotate(15deg);">📚</span>
+      <span class="hero-deco" style="bottom:6px; left:8px; font-size:30px;">✨</span>
+      <div class="hero-label">🏹 Kitob Ovi</div>
+      <div class="hero-grid">
+        <div>
+          <div class="hero-num" id="home-coins">0</div>
+          <div class="hero-sub">🪙 To'plangan koin</div>
+        </div>
+        <div>
+          <div class="hero-num" id="home-refs">0</div>
+          <div class="hero-sub">👥 Do'stlar</div>
+        </div>
+        <div>
+          <div class="hero-num" id="home-rank">—</div>
+          <div class="hero-sub">🏆 Reyting o'rni</div>
+        </div>
+        <div>
+          <div class="hero-num" id="home-streak">0</div>
+          <div class="hero-sub">🔥 Kun seriya</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quicklinks-row">
+      <div class="quicklink" onclick="switchTab('reyting', this)">
+        <span class="emoji">📊</span>
+        <div class="label">Referal reyting</div>
+      </div>
+      <div class="quicklink" onclick="openSection('tanlov')">
+        <span class="emoji">🏆</span>
+        <div class="label">Testlar</div>
+      </div>
+      <div class="quicklink" onclick="openSection('mutolaa')">
+        <span class="emoji">📖</span>
+        <div class="label">Mutolaa tarixi</div>
+      </div>
+    </div>
+
+    <div class="banner daily-bonus-banner" id="daily-bonus-banner" onclick="claimDailyBonus()">
+      <div class="banner-row">
+        <div class="banner-emoji">🎁</div>
+        <div>
+          <div class="banner-title" id="daily-bonus-title">Kunlik bonusni oling</div>
+          <div class="banner-sub" id="daily-bonus-sub">Bugun uchun bepul koin tayyor</div>
+        </div>
+        <div class="banner-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="banner banner-light" onclick="openSection('vazifalar')">
+      <div class="banner-row">
+        <div class="banner-emoji">✅</div>
+        <div>
+          <div class="banner-title">Vazifalar</div>
+          <div class="banner-sub">Vazifalarni bajarib qo'shimcha koin yig'ing</div>
+        </div>
+        <div class="banner-badge" id="tasks-badge" style="display:none">0</div>
+        <div class="banner-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="banner banner-light banner-soon">
+      <div class="banner-row">
+        <div class="banner-emoji">🏅</div>
+        <div>
+          <div class="banner-title">Turnir</div>
+          <div class="banner-sub">Jamoa bo'lib musobaqalashing</div>
+        </div>
+        <div class="soon-tag">Tez orada</div>
+      </div>
+    </div>
+
+    <div class="banner banner-light" onclick="openSection('tanlov')">
+      <div class="banner-row">
+        <div class="banner-emoji">🧠</div>
+        <div>
+          <div class="banner-title">Testlar</div>
+          <div class="banner-sub">Bilimingizni sinang, koin yuting</div>
+        </div>
+        <div class="banner-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="chest-hero" onclick="openSection('sandiq')">
+      <span class="sparkle" style="top:10px; left:14px; font-size:16px;">✨</span>
+      <span class="sparkle" style="top:18px; right:22px; font-size:12px;">✨</span>
+      <span class="sparkle" style="bottom:16px; left:26px; font-size:13px;">✨</span>
+      <svg viewBox="0 0 200 150" role="img" aria-label="Sirli sandiq">
+        <ellipse cx="100" cy="132" rx="62" ry="9" fill="#000000" opacity="0.18"></ellipse>
+        <path d="M28 70 L28 118 Q28 126 36 126 L164 126 Q172 126 172 118 L172 70 Z" fill="#854F0B"></path>
+        <path d="M28 70 L28 118 Q28 126 36 126 L164 126 Q172 126 172 118 L172 70 Z" fill="none" stroke="#412402" stroke-width="3"></path>
+        <rect x="28" y="66" width="144" height="10" fill="#633806"></rect>
+        <rect x="28" y="96" width="144" height="8" fill="#633806"></rect>
+        <path d="M26 68 Q26 34 100 30 Q174 34 174 68 L174 74 Q174 78 170 78 L30 78 Q26 78 26 74 Z" fill="#BA7517"></path>
+        <path d="M26 68 Q26 34 100 30 Q174 34 174 68 L174 74 Q174 78 170 78 L30 78 Q26 78 26 74 Z" fill="none" stroke="#412402" stroke-width="3"></path>
+        <rect x="26" y="58" width="148" height="9" fill="#FAC775"></rect>
+        <rect x="86" y="72" width="28" height="34" rx="4" fill="#FAEEDA"></rect>
+        <rect x="86" y="72" width="28" height="34" rx="4" fill="none" stroke="#633806" stroke-width="2.5"></rect>
+        <circle cx="100" cy="88" r="5" fill="#BA7517"></circle>
+        <circle cx="44" cy="98" r="4" fill="#FAC775"></circle>
+        <circle cx="156" cy="98" r="4" fill="#FAC775"></circle>
+        <circle cx="60" cy="20" r="6" fill="#FAC775" opacity="0.9"></circle>
+        <circle cx="140" cy="14" r="4" fill="#FAEEDA" opacity="0.85"></circle>
+        <circle cx="150" cy="30" r="3" fill="#FAC775" opacity="0.8"></circle>
+      </svg>
+      <div class="t">Sirli sandiq sizni kutmoqda</div>
+      <div class="s">Ochib, koin yoki premium yutib oling</div>
+    </div>
+
+    <div class="banner banner-light" onclick="switchTab('dokon', this)">
+      <div class="banner-row">
+        <div class="banner-emoji">🎁</div>
+        <div>
+          <div class="banner-title">Do'kon</div>
+          <div class="banner-sub">Kitoblar, nishonlar va Premium</div>
+        </div>
+        <div class="banner-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:6px">🏆 Haftalik tanlov</h3>
+      <div id="weekly-draw-content">
+        <div class="empty-note">Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:10px">🎉 So'nggi g'oliblar</h3>
+      <div id="winners-list">
+        <div class="empty-note">Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ref-box">
+        <div class="ref-link" id="ref-link">Yuklanmoqda...</div>
+        <button class="copy-btn" onclick="copyRef()">Nusxalash</button>
+      </div>
+      <div class="info-text" id="ref-info"></div>
+    </div>
+  </div>
+
+  <!-- Kitoblar -->
+  <div id="tab-kitoblar" class="tab-content">
+    <div class="card">
+      <div class="book-title" id="book-title">Yuklanmoqda...</div>
+      <div class="book-author" id="book-author"></div>
+      <div class="page-indicator" id="page-indicator"></div>
+      <div class="page-text" id="page-text"></div>
+      <br>
+      <button class="btn btn-primary" id="next-page-btn" onclick="nextPage()" disabled>Yuklanmoqda...</button>
+    </div>
+  </div>
+
+  <!-- Do'kon -->
+  <div id="tab-dokon" class="tab-content">
+    <div class="card">
+      <h3 style="margin-bottom:14px">🎁 Do'kon</h3>
+      <div id="shop-list"></div>
+    </div>
+  </div>
+
+  <!-- Reyting -->
+  <div id="tab-reyting" class="tab-content">
+    <div class="card">
+      <h3 style="margin-bottom:12px">📊 Reyting</h3>
+      <div class="lb-tabs">
+        <button class="lb-tab-btn active" onclick="showLb('coins', this)">🪙 Koin bo'yicha</button>
+        <button class="lb-tab-btn" onclick="showLb('referrals', this)">👥 Taklif bo'yicha</button>
+      </div>
+      <div id="leaderboard"></div>
+    </div>
+  </div>
+
+  <!-- Profil -->
+  <div id="tab-profil" class="tab-content">
+    <div class="card">
+      <div class="profile-header">
+        <div class="avatar" id="avatar">?</div>
+        <div>
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-username" id="profile-username"></div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="num" id="stat-books">0</div><div class="label">Sahifalar</div></div>
+        <div class="stat-box"><div class="num" id="stat-streak">0</div><div class="label">Kun seriya</div></div>
+        <div class="stat-box"><div class="num" id="stat-refs">0</div><div class="label">Do'stlar</div></div>
+        <div class="stat-box"><div class="num" id="stat-premium">—</div><div class="label">Premium</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tanlov (test) — Bosh sahifadan ochiladi -->
+  <div id="tab-tanlov" class="tab-content">
+    <div class="back-row"><span onclick="openSection('bosh')">← Bosh sahifa</span></div>
+    <div class="card">
+      <h3 style="margin-bottom:12px">🏆 Tanlov</h3>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Bilimingizni sinang, testdan o'tib koin yuting!</p>
+      <div id="quiz-list"></div>
+    </div>
+  </div>
+
+  <!-- Sirli Sandiq — Bosh sahifadan ochiladi -->
+  <div id="tab-sandiq" class="tab-content">
+    <div class="back-row"><span onclick="openSection('bosh')">← Bosh sahifa</span></div>
+    <div class="chest-hero" style="cursor:default">
+      <span class="sparkle" style="top:10px; left:14px; font-size:16px;">✨</span>
+      <span class="sparkle" style="top:18px; right:22px; font-size:12px;">✨</span>
+      <svg viewBox="0 0 200 150" role="img" aria-label="Sirli sandiq">
+        <ellipse cx="100" cy="132" rx="62" ry="9" fill="#000000" opacity="0.18"></ellipse>
+        <path d="M28 70 L28 118 Q28 126 36 126 L164 126 Q172 126 172 118 L172 70 Z" fill="#854F0B"></path>
+        <path d="M28 70 L28 118 Q28 126 36 126 L164 126 Q172 126 172 118 L172 70 Z" fill="none" stroke="#412402" stroke-width="3"></path>
+        <rect x="28" y="66" width="144" height="10" fill="#633806"></rect>
+        <rect x="28" y="96" width="144" height="8" fill="#633806"></rect>
+        <path d="M26 68 Q26 34 100 30 Q174 34 174 68 L174 74 Q174 78 170 78 L30 78 Q26 78 26 74 Z" fill="#BA7517"></path>
+        <path d="M26 68 Q26 34 100 30 Q174 34 174 68 L174 74 Q174 78 170 78 L30 78 Q26 78 26 74 Z" fill="none" stroke="#412402" stroke-width="3"></path>
+        <rect x="26" y="58" width="148" height="9" fill="#FAC775"></rect>
+        <rect x="86" y="72" width="28" height="34" rx="4" fill="#FAEEDA"></rect>
+        <rect x="86" y="72" width="28" height="34" rx="4" fill="none" stroke="#633806" stroke-width="2.5"></rect>
+        <circle cx="100" cy="88" r="5" fill="#BA7517"></circle>
+        <circle cx="44" cy="98" r="4" fill="#FAC775"></circle>
+        <circle cx="156" cy="98" r="4" fill="#FAC775"></circle>
+        <circle cx="60" cy="20" r="6" fill="#FAC775" opacity="0.9"></circle>
+        <circle cx="140" cy="14" r="4" fill="#FAEEDA" opacity="0.85"></circle>
+        <circle cx="150" cy="30" r="3" fill="#FAC775" opacity="0.8"></circle>
+      </svg>
+      <div class="t">Sirli Sandiq</div>
+      <div class="s">Ochib, koin yoki premium yutib oling</div>
+    </div>
+    <div class="chest-grid" id="chest-list"></div>
+  </div>
+
+  <!-- Vazifalar — Bosh sahifadan ochiladi -->
+  <div id="tab-vazifalar" class="tab-content">
+    <div class="back-row"><span onclick="openSection('bosh')">← Bosh sahifa</span></div>
+    <div class="card">
+      <h3 style="margin-bottom:10px">✅ Vazifalar</h3>
+      <div id="tasks-list"><div class="empty-note">Yuklanmoqda...</div></div>
+    </div>
+  </div>
+
+  <!-- Mutolaa tarixi — Bosh sahifadan ochiladi -->
+  <div id="tab-mutolaa" class="tab-content">
+    <div class="back-row"><span onclick="openSection('bosh')">← Bosh sahifa</span></div>
+    <div class="card">
+      <h3 style="margin-bottom:10px">📖 Mutolaa tarixi</h3>
+      <div id="reading-history-list"><div class="empty-note">Yuklanmoqda...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Pastki menyu -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('bosh', this)"><span class="icon">🏠</span>Bosh</button>
+  <button class="tab-btn" onclick="switchTab('kitoblar', this)"><span class="icon">📚</span>Kitoblar</button>
+  <button class="tab-btn" onclick="switchTab('dokon', this)"><span class="icon">🎁</span>Do'kon</button>
+  <button class="tab-btn" onclick="switchTab('reyting', this)"><span class="icon">📊</span>Reyting</button>
+  <button class="tab-btn" onclick="switchTab('profil', this)"><span class="icon">👤</span>Profil</button>
+</div>
+
+<!-- Sandiq animatsiyasi -->
+<div class="chest-overlay" id="chest-overlay">
+  <div class="chest-anim" id="chest-anim-emoji">📦</div>
+  <div class="reward-box" id="reward-box" style="display:none">
+    <div style="font-size:42px" id="reward-emoji">🎉</div>
+    <div class="reward-text" id="reward-text">+50 koin</div>
+    <br>
+    <button class="btn btn-primary" onclick="closeChestAnim()" style="margin-top:12px">Yopish</button>
+  </div>
+</div>
+
+<div class="coin-toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+const initData = tg.initData || "";
+let userData = null;
+
+// ========== UMUMIY ==========
+function switchTab(name, btnEl) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
+
+  if (name === 'reyting') loadLeaderboard();
+  if (name === 'dokon') loadShop();
+  if (name === 'profil') loadProfile();
+  if (name === 'bosh') loadHome();
+}
+
+// Bosh sahifadan ochiladigan, pastki menyuda bo'lmagan bo'limlar uchun
+function openSection(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'bosh') document.querySelector('.tab-btn').classList.add('active');
+
+  if (name === 'sandiq') loadChests();
+  if (name === 'tanlov') renderQuizList();
+  if (name === 'vazifalar') loadTasks();
+  if (name === 'mutolaa') loadReadingHistory();
+  if (name === 'bosh') loadHome();
+}
+
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.innerText = text;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function api(path, method = 'GET', body = null) {
+  const url = path + (path.includes('?') ? '&' : '?') + 'initData=' + encodeURIComponent(initData);
+  const opts = { method };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+// ========== BOSH SAHIFA ==========
+async function loadHome() {
+  const data = await api('/api/home');
+  if (data.error) return;
+
+  document.getElementById('balance').innerText = data.coins;
+  document.getElementById('home-coins').innerText = data.coins;
+  document.getElementById('home-refs').innerText = data.referral_count;
+  document.getElementById('home-rank').innerText = data.referral_rank ? ('#' + data.referral_rank) : '—';
+  document.getElementById('home-streak').innerText = data.streak_days;
+
+  const bonusBanner = document.getElementById('daily-bonus-banner');
+  const bonusTitle = document.getElementById('daily-bonus-title');
+  const bonusSub = document.getElementById('daily-bonus-sub');
+  if (data.free_daily_bonus_claimed) {
+    bonusTitle.innerText = 'Bugungi bonus olindi';
+    bonusSub.innerText = 'Ertaga qaytadan kiring';
+    bonusBanner.style.opacity = '0.6';
+    bonusBanner.onclick = null;
+  } else {
+    bonusTitle.innerText = 'Kunlik bonusni oling';
+    bonusSub.innerText = `+${data.free_daily_bonus_amount} koin — bosing va oling`;
+    bonusBanner.style.opacity = '1';
+    bonusBanner.onclick = claimDailyBonus;
+  }
+
+  const badge = document.getElementById('tasks-badge');
+  if (data.unclaimed_tasks > 0) {
+    badge.style.display = 'inline-block';
+    badge.innerText = data.unclaimed_tasks;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const weeklyEl = document.getElementById('weekly-draw-content');
+  if (data.weekly_draw) {
+    const w = data.weekly_draw;
+    const pct = Math.min(100, Math.round((w.progress / w.goal) * 100));
+    weeklyEl.innerHTML = `
+      <div style="font-size:13.5px;margin-bottom:4px">🎯 Shart: <b>${w.goal} ta do'st taklif qilish</b></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:12.5px;color:var(--text-dim)">${w.progress} / ${w.goal} bajarildi</div>
+      <button class="link-btn" onclick="toggleWeeklyDetails()">Batafsil</button>
+      <div class="weekly-details" id="weekly-details">
+        🎁 Sovg'a: <b>${w.reward_text}</b><br>
+        📅 Hafta: ${w.week_start} — ${w.week_end}<br>
+        Shu hafta ichida yetarli do'st taklif qilsangiz, tanlovda qatnashish huquqiga ega bo'lasiz.
+        G'olib tasodifiy tanlov orqali aniqlanadi.
+      </div>
+    `;
+  } else {
+    weeklyEl.innerHTML = '<div class="empty-note">Hozircha faol tanlov yo\'q</div>';
+  }
+
+  const winnersEl = document.getElementById('winners-list');
+  if (data.recent_winners && data.recent_winners.length > 0) {
+    winnersEl.innerHTML = data.recent_winners.map(w => `
+      <div class="winner-row">
+        <div class="winner-emoji">🏆</div>
+        <div>
+          <div class="winner-name">${w.username}</div>
+          <div class="winner-meta">${w.week_label} • ${w.referral_count} referral</div>
+        </div>
+        <div class="winner-prize">${w.prize}</div>
+      </div>
+    `).join('');
+  } else {
+    winnersEl.innerHTML = '<div class="empty-note">Hali g\'oliblar aniqlanmagan</div>';
+  }
+}
+
+function toggleWeeklyDetails() {
+  document.getElementById('weekly-details').classList.toggle('show');
+}
+
+async function claimDailyBonus() {
+  const data = await api('/api/claim_daily_bonus', 'POST');
+  if (data.error) {
+    showToast('Bugungi bonus allaqachon olingan');
+    return;
+  }
+  document.getElementById('balance').innerText = data.coins;
+  showToast(`+${data.earned} koin!`);
+  loadHome();
+}
+
+// ========== KITOBLAR (o'qish) ==========
+const BOOK = {
+  title: "Yulduzlar sayohati",
+  author: "Noma'lum muallif",
+  pages: [
+    "Kecha osmonida minglab yulduzlar charaqlab turardi. Ayvon eshigi ochilgan bo'lib, sokin shabada xonaga kirib kelardi...",
+    "U derazadan tashqariga qaradi va uzoqdagi tog' cho'qqilarini payqadi. Ular xuddi kumush rangga bo'yalgandek yaltirardi.",
+    "\"Ertaga sayohatga chiqamiz\", dedi u o'ziga o'zi. Yuragida kutilmagan hayajon uyg'ondi, xuddi bolalikdagidek.",
+    "Tong otishi bilan u yo'l tayyorgarligini boshladi. Har bir qadam yangi bir voqeaning boshlanishi edi.",
+    "Va nihoyat, ufqning narigi tomonida quyosh ko'tarilar ekan, u birinchi qadamini tashladi — sayohat boshlandi."
+  ]
+};
+
+let bookTimer = null;
+let currentPage = 0;
+let pageTimerSeconds = 30;
+let coinsPerPage = 10;
+let pageReadyToEarn = false;
+
+function loadBook() {
+  document.getElementById('book-title').innerText = BOOK.title;
+  document.getElementById('book-author').innerText = BOOK.author;
+  renderPage(currentPage);
+}
+
+function renderPage(idx) {
+  clearInterval(bookTimer);
+  const btn = document.getElementById('next-page-btn');
+  const total = BOOK.pages.length;
+
+  if (idx >= total) {
+    document.getElementById('page-indicator').innerText = '';
+    document.getElementById('page-text').innerHTML =
+      `<div class="book-done"><div class="emoji">🎉</div>Siz kitobni tugatdingiz!<br>Boshqa kitoblarni Do'kondan sotib olishingiz mumkin.</div>`;
+    btn.innerText = 'Kitob tugadi';
+    btn.disabled = true;
+    return;
+  }
+
+  document.getElementById('page-indicator').innerText = `Sahifa ${idx + 1} / ${total}`;
+  document.getElementById('page-text').innerText = BOOK.pages[idx];
+
+  pageReadyToEarn = false;
+  let remaining = pageTimerSeconds;
+  btn.disabled = true;
+  btn.innerText = `O'qing... (${remaining}s)`;
+
+  bookTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(bookTimer);
+      pageReadyToEarn = true;
+      btn.disabled = false;
+      btn.innerText = `Keyingi sahifa (+${coinsPerPage} 🪙)`;
+    } else {
+      btn.innerText = `O'qing... (${remaining}s)`;
+    }
+  }, 1000);
+}
+
+async function nextPage() {
+  if (!pageReadyToEarn) return;
+  const btn = document.getElementById('next-page-btn');
+  btn.disabled = true;
+
+  const data = await api('/api/earn', 'POST', {
+    book_title: BOOK.title,
+    page_number: currentPage + 1
+  });
+  if (data.error) {
+    showToast('Xatolik yuz berdi');
+    btn.disabled = false;
+    return;
+  }
+
+  document.getElementById('balance').innerText = data.coins;
+  showToast(`+${data.earned} koin!`);
+
+  currentPage += 1;
+  renderPage(currentPage);
+}
+
+// ========== TANLOV (quiz) ==========
+const QUIZ_QUESTIONS = [
+  { q: "\"Kitob Ovi\" ilovasida sahifa o'qib nechta koin olish mumkin?", options: ["5", "10", "20", "50"], correct: 1 },
+  { q: "Do'stni taklif qilsangiz nechta koin olasiz?", options: ["100", "150", "300", "500"], correct: 2 },
+  { q: "Nechta turdagi Sirli Sandiq mavjud?", options: ["2", "3", "4", "5"], correct: 1 },
+  { q: "Premium a'zolik necha kunga beriladi?", options: ["3 kun", "7 kun", "14 kun", "30 kun"], correct: 1 },
+  { q: "Streak seriyasining 7-kunida qancha bonus koin beriladi?", options: ["25", "50", "100", "150"], correct: 2 },
+];
+
+let quizIndex = 0;
+let quizCorrect = 0;
+let quizActive = false;
+
+function renderQuizList() {
+  if (quizActive) return;
+  const el = document.getElementById('quiz-list');
+  el.innerHTML = `
+    <div class="quiz-card">
+      <div class="quiz-title">📖 Umumiy bilim testi</div>
+      <div class="quiz-meta">
+        <span>❓ ${QUIZ_QUESTIONS.length} ta savol</span>
+        <span>🪙 Har to'g'ri javob uchun koin</span>
+      </div>
+      <button class="quiz-start-btn" onclick="startQuiz()">Boshlash</button>
+    </div>
+  `;
+}
+
+function startQuiz() {
+  quizIndex = 0;
+  quizCorrect = 0;
+  quizActive = true;
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const el = document.getElementById('quiz-list');
+  const item = QUIZ_QUESTIONS[quizIndex];
+  el.innerHTML = `
+    <div class="quiz-card">
+      <div class="quiz-progress">Savol ${quizIndex + 1} / ${QUIZ_QUESTIONS.length}</div>
+      <div class="quiz-title">${item.q}</div>
+      <div id="quiz-options"></div>
+    </div>
+  `;
+  const optsEl = document.getElementById('quiz-options');
+  item.options.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'quiz-option';
+    b.innerText = opt;
+    b.onclick = () => answerQuiz(i);
+    optsEl.appendChild(b);
+  });
+}
+
+function answerQuiz(selectedIdx) {
+  const item = QUIZ_QUESTIONS[quizIndex];
+  const buttons = document.querySelectorAll('#quiz-options .quiz-option');
+  buttons.forEach(b => b.onclick = null);
+  buttons[item.correct].classList.add('correct');
+  if (selectedIdx !== item.correct) {
+    buttons[selectedIdx].classList.add('wrong');
+  } else {
+    quizCorrect += 1;
+  }
+
+  setTimeout(() => {
+    quizIndex += 1;
+    if (quizIndex < QUIZ_QUESTIONS.length) {
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }, 900);
+}
+
+async function finishQuiz() {
+  quizActive = false;
+  const data = await api('/api/quiz_complete', 'POST', { correct: quizCorrect });
+  const el = document.getElementById('quiz-list');
+
+  if (data.error) {
+    el.innerHTML = `<div class="quiz-card">Xatolik yuz berdi. Qaytadan urinib ko'ring.</div>`;
+    renderQuizList();
+    return;
+  }
+
+  document.getElementById('balance').innerText = data.coins;
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:center">
+      <div style="font-size:38px;margin-bottom:8px">🏆</div>
+      <div class="quiz-title">${quizCorrect} / ${QUIZ_QUESTIONS.length} to'g'ri javob</div>
+      <div style="color:var(--success);font-weight:700;margin:10px 0">+${data.earned} koin yutdingiz!</div>
+      <button class="quiz-start-btn" onclick="renderQuizList()">Qaytadan boshlash</button>
+    </div>
+  `;
+  showToast(`+${data.earned} koin!`);
+}
+
+// ========== VAZIFALAR ==========
+async function loadTasks() {
+  const data = await api('/api/tasks');
+  const el = document.getElementById('tasks-list');
+  if (data.error || !data.tasks) {
+    el.innerHTML = '<div class="empty-note">Xatolik yuz berdi</div>';
+    return;
+  }
+  if (data.tasks.length === 0) {
+    el.innerHTML = '<div class="empty-note">Hozircha vazifalar yo\'q</div>';
+    return;
+  }
+  el.innerHTML = data.tasks.map(t => {
+    const pct = Math.min(100, Math.round((t.progress / t.goal) * 100));
+    let btnHtml;
+    if (t.claimed) {
+      btnHtml = '<span class="owned-tag">Olingan</span>';
+    } else if (t.completed) {
+      btnHtml = `<button class="task-claim-btn" onclick="claimTaskReward('${t.code}')">Mukofotni olish</button>`;
+    } else {
+      btnHtml = `<button class="task-claim-btn" disabled>${t.progress} / ${t.goal}</button>`;
+    }
+    return `
+      <div class="task-item">
+        <div class="task-top">
+          <div class="task-title">${t.title}</div>
+          <div class="task-reward">+${t.reward} 🪙</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin-top:4px">${t.progress} / ${t.goal}</div>
+        ${btnHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+async function claimTaskReward(code) {
+  const data = await api('/api/claim_task', 'POST', { task_code: code });
+  if (data.error) {
+    showToast('Bu vazifani hali bajarmagansiz');
+    return;
+  }
+  document.getElementById('balance').innerText = data.coins;
+  showToast(`+${data.earned} koin!`);
+  loadTasks();
+}
+
+// ========== MUTOLAA TARIXI ==========
+async function loadReadingHistory() {
+  const data = await api('/api/reading_history');
+  const el = document.getElementById('reading-history-list');
+  if (data.error || !data.history) {
+    el.innerHTML = '<div class="empty-note">Xatolik yuz berdi</div>';
+    return;
+  }
+  if (data.history.length === 0) {
+    el.innerHTML = '<div class="empty-note">Hali hech narsa o\'qilmagan</div>';
+    return;
+  }
+  el.innerHTML = data.history.map(h => `
+    <div class="history-row">
+      📖 <b>${h.book_title}</b> — ${h.page_number}-sahifa (+${h.coins_earned} 🪙)
+      <div class="meta">${h.read_at}</div>
+    </div>
+  `).join('');
+}
+
+// ========== SIRLI SANDIQ ==========
+async function loadChests() {
+  const data = await api('/api/chests');
+  if (data.error) return;
+
+  document.getElementById('balance').innerText = data.coins;
+
+  const list = document.getElementById('chest-list');
+  list.innerHTML = '';
+
+  data.chests.forEach(chest => {
+    const canOpen = chest.can_open;
+    const div = document.createElement('div');
+    div.className = 'chest-card';
+    div.innerHTML = `
+      <span class="chest-emoji">${chest.emoji}</span>
+      <div class="chest-name">${chest.name}</div>
+      <div class="chest-cost">${chest.cost} 🪙</div>
+      <div class="chest-limit">Bugun: ${chest.opened_today}/${chest.daily_limit} (qoldi ${chest.remaining})</div>
+      <button class="chest-btn" ${canOpen ? '' : 'disabled'} onclick="openChest('${chest.id}', '${chest.emoji}')">
+        ${canOpen ? 'Ochish' : (chest.remaining === 0 ? 'Limit tugadi' : 'Koin yetarli emas')}
+      </button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function openChest(chestId, emoji) {
+  const overlay = document.getElementById('chest-overlay');
+  const animEmoji = document.getElementById('chest-anim-emoji');
+  const rewardBox = document.getElementById('reward-box');
+
+  animEmoji.innerText = emoji;
+  rewardBox.style.display = 'none';
+  overlay.classList.add('show');
+
+  await new Promise(r => setTimeout(r, 1200));
+
+  const data = await api('/api/open_chest', 'POST', { chest_id: chestId });
+
+  if (data.error) {
+    overlay.classList.remove('show');
+    if (data.error === 'limit_reached') showToast('Bugungi limit tugagan');
+    else if (data.error === 'not_enough_coins') showToast('Koin yetarli emas');
+    else showToast('Xatolik yuz berdi');
+    return;
+  }
+
+  document.getElementById('reward-emoji').innerText = data.reward_type === 'premium' ? '⭐' : '🪙';
+  document.getElementById('reward-text').innerText = data.reward_text;
+  rewardBox.style.display = 'block';
+
+  document.getElementById('balance').innerText = data.new_balance;
+}
+
+function closeChestAnim() {
+  document.getElementById('chest-overlay').classList.remove('show');
+  loadChests();
+}
+
+// ========== BOSHQA FUNKSIYALAR ==========
+async function loadMe() {
+  const data = await api('/api/me');
+  if (data.error) return;
+  userData = data;
+  document.getElementById('balance').innerText = data.coins;
+
+  pageTimerSeconds = data.page_timer || 30;
+  coinsPerPage = data.coins_per_page || 10;
+
+  if (data.streak_bonus_granted) showToast(`🔥 +${data.streak_bonus_granted} koin (streak)`);
+  if (data.daily_bonus_granted) showToast(`⭐ +${data.daily_bonus_granted} koin (premium bonus)`);
+
+  loadBook();
+  loadHome();
+}
+
+async function loadLeaderboard() {
+  const data = await api('/api/leaderboard');
+  showLbData(data.coins, 'coins');
+}
+
+function showLb(type, btnEl) {
+  document.querySelectorAll('.lb-tab-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  api('/api/leaderboard').then(data => {
+    showLbData(type === 'coins' ? data.coins : data.referrals, type);
+  });
+}
+
+function showLbData(list, type) {
+  const el = document.getElementById('leaderboard');
+  el.innerHTML = list.map((r, i) => `
+    <div class="lb-row">
+      <div class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</div>
+      <div class="lb-name">${r.name}</div>
+      <div class="lb-value">${r.value}${type === 'coins' ? ' 🪙' : ' 👥'}</div>
+    </div>
+  `).join('');
+}
+
+async function loadShop() {
+  const data = await api('/api/shop_items');
+  const list = document.getElementById('shop-list');
+  list.innerHTML = data.items.map(item => `
+    <div class="shop-item">
+      <div class="shop-emoji">${item.emoji}</div>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}</div>
+        <div class="shop-cost">${item.cost} 🪙</div>
+      </div>
+      ${item.owned ? '<span class="owned-tag">Olingan</span>' :
+        `<button class="buy-btn" ${item.can_buy ? '' : 'disabled'} onclick="buyItem('${item.id}')">Sotib olish</button>`}
+    </div>
+  `).join('');
+}
+
+async function buyItem(id) {
+  const data = await api('/api/purchase', 'POST', { item_id: id });
+  if (data.success) {
+    showToast(`✅ ${data.item_name} sotib olindi!`);
+    document.getElementById('balance').innerText = data.coins;
+    loadShop();
+  } else {
+    showToast('Xatolik');
+  }
+}
+
+function copyRef() {
+  const link = document.getElementById('ref-link').innerText;
+  navigator.clipboard.writeText(link);
+  showToast('Havola nusxalandi!');
+}
+
+async function loadProfile() {
+  if (!userData) return;
+  document.getElementById('avatar').innerText = (userData.username || 'U')[0].toUpperCase();
+  document.getElementById('profile-name').innerText = userData.username || 'Foydalanuvchi';
+  document.getElementById('stat-books').innerText = userData.pages_read || 0;
+  document.getElementById('stat-streak').innerText = userData.streak_days || 0;
+  document.getElementById('stat-refs').innerText = userData.referral_count || 0;
+  document.getElementById('stat-premium').innerText = userData.is_premium ? '⭐' : '—';
+}
+
+function initReferralBox() {
+  const link = `https://t.me/Kitob_coin_bot?start=ref_${(userData && userData.user_id) || ''}`;
+  document.getElementById('ref-link').innerText = link;
+  document.getElementById('ref-info').innerHTML =
+    `Do'stingizni taklif qiling — u kanallarga a'zo bo'lib ilovani ochsa, sizga <b>+300 koin</b> qo'shiladi!`;
+}
+
+// Boshlash
+loadMe().then(initReferralBox);
+</script>
+</body>
+</html>
