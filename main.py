@@ -47,7 +47,7 @@ if not BOT_TOKEN:
 ADMIN_IDS = [8241010228]
 
 FORCE_CHANNELS = [
-    "@kitob_coin",
+    "@Kitobzor_loyihasi",
 ]
 
 WEBAPP_URL = "https://web-production-aa006.up.railway.app"
