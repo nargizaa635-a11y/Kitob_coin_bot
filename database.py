@@ -1,4 +1,4 @@
-# database.py
+p# database.py
 # Postgres (Railway'ning tayyor ma'lumotlar bazasi xizmati) bilan ishlash
 
 import os
