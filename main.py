@@ -397,11 +397,17 @@ async def cmd_start(message: Message, state: FSMContext):
         )
 
     await message.answer(
-        f"✅ Xush kelibsiz {APP_NAME}'ga!\n\n"
-        "📚 Kitob o'qing, koin yig'ing, sovg'alarga almashtiring!"
-        f"{referral_note}\n\n"
-        "Quyidagi tugma orqali ilovani oching:",
-        reply_markup=webapp_keyboard(),
+    f"🚀 <b>KITOBZOR'GA XUSH KELIBSIZ!</b>\n\n"
+    "📚 <b>O‘qing.</b> Bilim oling.\n"
+    "🪙 <b>Coin yig‘ing.</b> Mukofotlarga ega bo‘ling.\n\n"
+    "🎯 Quizlar va topshiriqlar\n"
+    "🔥 Kunlik streak bonuslar\n"
+    "👥 Referal mukofotlar\n"
+    "🎁 Sovg‘alar\n"
+    "👑 Premium imkoniyatlar\n\n"
+    "✨ <i>Kitobxonlik sayohatingiz shu yerdan boshlanadi.</i>\n\n"
+    "👇 <b>Ilovani oching va boshlang!</b>",
+    reply_markup=webapp_keyboard(),
     )
 
 
