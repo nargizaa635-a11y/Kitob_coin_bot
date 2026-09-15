@@ -3,3 +3,4 @@ aiohttp==3.10.10
 asyncpg==0.30.0
 pdf2image==1.17.0
 Pillow==10.4.0
+PyMuPDF==1.24.10
