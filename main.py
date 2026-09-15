@@ -47,7 +47,7 @@ if not BOT_TOKEN:
         "BOT_TOKEN nomi bilan yangi tokeningizni qo'shing."
     )
 
-ADMIN_IDS = [8241010228]
+ADMIN_IDS = [1920583847]
 
 FORCE_CHANNELS = [
     "@Kitobzor_loyihasi",
