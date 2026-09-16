@@ -3,7 +3,7 @@
 
 import os
 import re
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF
 from pdf2image import convert_from_path, pdfinfo_from_path
 
 PDF_DPI = 120
