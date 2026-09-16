@@ -1730,7 +1730,7 @@ async def process_book_coins(message: Message, state: FSMContext):
             f"📕 {title}\n"
             f"✍️ {author}\n"
             f"🏷 {genre}\n"
-            f"📄 {len(final_page_rel_paths)} sahifa\n"
+            f"📄 {len(final_page_items)} sahifa\n"
             f"👥 Kerak: {required_referrals} referral, 🪙 {coins_required} koin"
         )
     except Exception as e:
