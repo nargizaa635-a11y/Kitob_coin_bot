@@ -20,18 +20,51 @@ _ALLOWED_CHARS_RE = re.compile(
 )
 GARBAGE_RATIO_THRESHOLD = 0.01  # 1% dan ortiq begona belgi — matn ishonchsiz deb topiladi
 
+# So'z darajasidagi tekshiruv: ba'zi buzilgan shriftlarda HAR BIR harf o'zi to'g'ri
+# (lotin/kirill alifbosida bor) bo'ladi, lekin ular birga qo'shilganda "oJill",
+# "SjI", "dhdjl" kabi ma'nosiz so'z hosil qiladi. Bunday holatni belgilar nisbati
+# (yuqoridagi) ushlay olmaydi — shuning uchun alohida so'z tahlili kerak.
+_WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ]+")
+_VOWELS = set("aeiouAEIOUаеёиоуыэюяАЕЁИОУЫЭЮЯўЎ")
+
+
+def _word_looks_like_garbage(word: str) -> bool:
+    """Bitta so'z ma'nosiz (shrift xato xaritalangani natijasi) ko'rinishga
+    egami — ikkita mustaqil belgi orqali tekshiradi."""
+    if len(word) < 3:
+        return False
+    # 1) Tartibsiz katta-kichik harf: real so'zda katta harf faqat boshida bo'ladi
+    #    (yoki so'z butunlay katta harflar bilan yozilgan — qisqartma). Agar
+    #    o'rtada kutilmagan katta harf chiqsa, bu buzilgan matn belgisi.
+    rest = word[1:]
+    if any(c.isupper() for c in rest) and not word.isupper():
+        return True
+    # 2) Uzun so'zda bironta ham unli tovush yo'qligi — haqiqiy so'zda deyarli
+    #    hech qachon uchramaydigan holat.
+    if len(word) >= 5 and not any(c in _VOWELS for c in word):
+        return True
+    return False
+
 
 def _is_text_reliable(text: str) -> bool:
     """Ajratilgan matnning qanchalik "ishonchli" ekanini tekshiradi. Agar begona
-    (shrift xato xaritalangan) belgilar ulushi chegaradan oshsa, False qaytaradi —
-    bunday holda sahifa matn emas, rasm sifatida saqlanishi kerak, chunki rasm
-    PDF qanday ko'rinsa aynan shundayligicha chiqadi va hech qachon buzilmaydi."""
+    (shrift xato xaritalangan) belgilar ulushi chegaradan oshsa, YOKI matnda
+    ma'nosiz ("buzilgan") so'zlar uchrasa, False qaytaradi — bunday holda sahifa
+    matn emas, rasm sifatida saqlanishi kerak, chunki rasm PDF qanday ko'rinsa
+    aynan shundayligicha chiqadi va hech qachon buzilmaydi."""
     compact = re.sub(r"\s+", "", text)
     if not compact:
         return False
     allowed = len(_ALLOWED_CHARS_RE.findall(compact))
     garbage_ratio = 1 - (allowed / len(compact))
-    return garbage_ratio <= GARBAGE_RATIO_THRESHOLD
+    if garbage_ratio > GARBAGE_RATIO_THRESHOLD:
+        return False
+
+    words = _WORD_RE.findall(text)
+    if any(_word_looks_like_garbage(w) for w in words):
+        return False
+
+    return True
 
 
 def convert_pdf_to_page_images(pdf_path: str, output_dir: str) -> list:
